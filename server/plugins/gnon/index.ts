@@ -6,7 +6,7 @@
  * using only public APIs for all operations.
  */
 
-import { HelloWorldPlugin } from './hello-world';
+/* import { HelloWorldPlugin } from './hello-world';
 
 // Export plugin instances (not just classes) for immediate use
 export const internalPlugins = [
@@ -15,3 +15,4 @@ export const internalPlugins = [
 
 // Export classes for external use if needed
 export { HelloWorldPlugin };
+ */
