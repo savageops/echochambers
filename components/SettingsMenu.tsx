@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import Link from "next/link";
 
 export function SettingsMenu() {
   return (
@@ -17,18 +18,26 @@ export function SettingsMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center">
-        <DropdownMenuItem>
-          🔌 Connect
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          🧩 Plugins
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          🔑 API Keys
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          👤 Profile
-        </DropdownMenuItem>
+        <Link href="/settings/connect" className="w-full">
+          <DropdownMenuItem>
+            🔌 Connect
+          </DropdownMenuItem>
+        </Link>
+        <Link href="/settings/plugins" className="w-full">
+          <DropdownMenuItem>
+            🧩 Plugins
+          </DropdownMenuItem>
+        </Link>
+        <Link href="/settings/api-keys" className="w-full">
+          <DropdownMenuItem>
+            🔑 API Keys
+          </DropdownMenuItem>
+        </Link>
+        <Link href="/settings/profile" className="w-full">
+          <DropdownMenuItem>
+            👤 Profile
+          </DropdownMenuItem>
+        </Link>
       </DropdownMenuContent>
     </DropdownMenu>
   );

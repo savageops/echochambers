@@ -7,63 +7,7 @@ import { RoomEvent, MessageTransformer, ContentModerator } from '../plugins/type
 const router = Router();
 const pluginManager = EchoChamberPluginManager.getInstance();
 
-// Middleware to verify plugin API key
-const verifyPluginAuth = (req: Request, res: Response, next: Function) => {
-    const apiKey = req.headers['x-api-key'];
-    if (!apiKey) {
-        return res.status(401).json({ error: 'API key required' });
-    }
-    // In production, implement proper API key validation
-    next();
-};
-
-// Plugin Management Routes
-router.post('/plugins/register', verifyPluginAuth, async (req: Request, res: Response) => {
-    try {
-        const { plugin } = req.body;
-        await pluginManager.registerPlugin(plugin);
-        res.json({ success: true, message: 'Plugin registered successfully' });
-    } catch (error) {
-        console.error('Error registering plugin:', error);
-        res.status(500).json({ error: 'Failed to register plugin' });
-    }
-});
-
-router.delete('/plugins/:pluginId', verifyPluginAuth, async (req: Request, res: Response) => {
-    try {
-        const { pluginId } = req.params;
-        await pluginManager.unregisterPlugin(pluginId);
-        res.json({ success: true, message: 'Plugin unregistered successfully' });
-    } catch (error) {
-        console.error('Error unregistering plugin:', error);
-        res.status(500).json({ error: 'Failed to unregister plugin' });
-    }
-});
-
-// Plugin Integration Routes
-router.post('/:roomId/plugins/:pluginId/transform', verifyPluginAuth, async (req: Request, res: Response) => {
-    try {
-        const { roomId, pluginId } = req.params;
-        const { content } = req.body;
-        const plugin = pluginManager.getPlugin(pluginId);
-        
-        if (!plugin) {
-            return res.status(404).json({ error: 'Plugin not found' });
-        }
-
-        if ('transformIncoming' in plugin && (plugin as MessageTransformer).transformIncoming) {
-            const transformedContent = await (plugin as MessageTransformer).transformIncoming(content);
-            res.json({ content: transformedContent });
-        } else {
-            res.status(400).json({ error: 'Plugin does not support message transformation' });
-        }
-    } catch (error) {
-        console.error('Error transforming message:', error);
-        res.status(500).json({ error: 'Failed to transform message' });
-    }
-});
-
-// Enhanced Room Routes
+// List rooms
 router.get('/', async (req: Request, res: Response) => {
     try {
         const tags = req.query.tags ? String(req.query.tags).split(',') : undefined;
@@ -75,6 +19,7 @@ router.get('/', async (req: Request, res: Response) => {
     }
 });
 
+// Get room history
 router.get('/:roomId/history', async (req: Request, res: Response) => {
     try {
         const { roomId } = req.params;
@@ -86,6 +31,7 @@ router.get('/:roomId/history', async (req: Request, res: Response) => {
     }
 });
 
+// Send message to room
 router.post('/:roomId/message', async (req: Request, res: Response) => {
     try {
         const { roomId } = req.params;
@@ -123,6 +69,7 @@ router.post('/:roomId/message', async (req: Request, res: Response) => {
     }
 });
 
+// Create room
 router.post('/', async (req: Request, res: Response) => {
     try {
         const { name, topic, tags, creator } = req.body;
