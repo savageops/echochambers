@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     };
 
     const roomConnections = connections.get(roomId) || [];
-    roomConnections.forEach(({ ws }) => {
+    roomConnections.forEach(({ ws }: { ws: WebSocket }) => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify(message));
       }
@@ -36,4 +36,4 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-} 
+}

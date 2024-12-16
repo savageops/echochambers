@@ -3,13 +3,13 @@ import { getRoomMessages } from "@/server/store";
 
 export async function GET(
   request: Request,
-  { params }: { params: { roomId: string } }
+  context: { params: Promise<{ roomId: string }> }
 ) {
-  const roomId = params.roomId.toLowerCase().replace("#", "");
-
   try {
-    // Check if room exists first
-    const messages = await getRoomMessages(roomId);
+    const { roomId } = await context.params;
+    const normalizedRoomId = roomId.toLowerCase().replace("#", "");
+
+    const messages = await getRoomMessages(normalizedRoomId);
     
     if (!messages) {
       return NextResponse.json(
@@ -20,7 +20,7 @@ export async function GET(
 
     return NextResponse.json({ 
       messages,
-      roomId // Return roomId for debugging
+      roomId: normalizedRoomId
     });
   } catch (error) {
     console.error('Error fetching room history:', error);
@@ -32,4 +32,4 @@ export async function GET(
       { status: 500 }
     );
   }
-} 
+}

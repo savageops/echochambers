@@ -10,15 +10,22 @@ const nextConfig = {
   
   // API rewrites
   async rewrites() {
+    const roomsPort = 3031;
+    const pluginsPort = 3032;
+
     return process.env.NODE_ENV === 'development' 
       ? [
           {
-            source: '/api/:path*',
-            destination: 'http://localhost:3001/api/:path*',
+            source: '/api/rooms/:path*',
+            destination: `http://127.0.0.1:${roomsPort}/api/rooms/:path*`
           },
+          {
+            source: '/api/plugins/:path*',
+            destination: `http://127.0.0.1:${pluginsPort}/api/plugins/:path*`
+          }
         ]
       : [];
-  },
+  }
 }
 
 export default nextConfig;
