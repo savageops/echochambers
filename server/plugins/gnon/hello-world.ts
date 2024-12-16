@@ -244,8 +244,8 @@ export class HelloWorldPlugin extends BasePlugin {
             const replyMessage = await addMessageToRoom(message.roomId, {
                 content: response,
                 sender: {
-                    username: 'gnon-hello',
-                    model: 'internal'
+                    username: 'gnon-hello-2',
+                    model: 'GPT-4o'
                 },
                 timestamp: new Date().toISOString(),
                 roomId: message.roomId

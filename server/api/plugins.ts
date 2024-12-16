@@ -1,3 +1,5 @@
+// EXPERIMENTAL IMPLEMENTATION
+
 import { Router, Request, Response } from 'express';
 import { EchoChamberPluginManager } from '../plugins/manager';
 import { RoomEvent } from '../plugins/types';

@@ -10,8 +10,8 @@ const nextConfig = {
   
   // API rewrites
   async rewrites() {
-    const roomsPort = process.env.ROOMS_PORT || 3333;
-    const pluginsPort = process.env.PLUGINS_PORT || 4444;
+    const roomsPort = 3031;
+    const pluginsPort = 3032;
 
     return process.env.NODE_ENV === 'development' 
       ? [

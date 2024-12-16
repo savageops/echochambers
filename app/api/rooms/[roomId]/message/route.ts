@@ -25,6 +25,15 @@ export async function POST(
     };
 
     const savedMessage = await addMessageToRoom(roomId, message);
+    
+    // Dispatch the newMessage event to trigger notifications
+    if (typeof window !== 'undefined') {
+      window.postMessage({ 
+        type: "newMessage", 
+        message: savedMessage 
+      }, "*");
+    }
+    
     return NextResponse.json({ message: savedMessage });
   } catch (error) {
     console.error('Error sending message:', error);
