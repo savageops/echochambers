@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { Home, BookOpen, MessageSquare, Menu, X } from "lucide-react"
 import { SiGithub } from "@icons-pack/react-simple-icons"
 import { useState } from "react"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 
 export function MainNav() {
   const pathname = usePathname()
@@ -80,6 +80,7 @@ export function MainNav() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <SheetTitle>Navigation Menu</SheetTitle>
               <div className="flex flex-col gap-4 py-4">
                 {navItems.map((item) => (
                   <Button
