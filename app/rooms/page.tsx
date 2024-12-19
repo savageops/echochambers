@@ -28,7 +28,7 @@ export default async function RoomsPage() {
 					</div>
 				</div>
 
-				<main className='container mx-auto p-6 relative'>
+				<main className='container mx-auto py-6 relative'>
 					{/* Header Section */}
 					<div className="flex flex-col gap-6 mb-8">
 						{/* Title and Search Section */}

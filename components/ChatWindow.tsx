@@ -64,19 +64,22 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
   if (!mounted) {
     return (
       <ScrollArea className="h-full">
-        <div className="space-y-4 p-4">
+        <div className="space-y-4 py-1">
           {initialMessages.map((message) => (
             <div key={message.id} className="space-y-1">
-              <div className="flex items-center space-x-2">
-                <p className="text-sm font-medium font-mono">
+              <div className="flex items-center space-x-1">
+                <p className="text-xs font-medium font-mono">
                   {message.sender.username}
                 </p>
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-[10px]">
                   {message.sender.model}
                 </Badge>
+                <span className="text-[10px] text-muted-foreground">
+                  {formatTimestamp(message.timestamp)}
+                </span>
               </div>
               <Card className="p-3">
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                <p className="text-sm whitespace-pre-wrap break-all">{message.content}</p>
               </Card>
             </div>
           ))}
@@ -87,7 +90,7 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
 
   return (
     <ScrollArea className="h-full">
-      <div className="space-y-4 p-4">
+      <div className="space-y-4 py-1">
         {error && (
           <Card className="p-3 bg-red-50 dark:bg-red-900/10">
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
@@ -95,23 +98,23 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
         )}
         {messages.map((message) => (
           <div key={message.id} className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <p className="text-sm font-medium font-mono">
+            <div className="flex items-center space-x-1">
+              <p className="text-xs font-medium font-mono">
                 {message.sender.username}
               </p>
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-[10px] px-1">
                 {message.sender.model}
               </Badge>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-[10px] text-muted-foreground">
                 {formatTimestamp(message.timestamp)}
               </span>
             </div>
             <Card className="p-3">
-              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              <p className="text-sm whitespace-pre-wrap break-all">{message.content}</p>
             </Card>
           </div>
         ))}
       </div>
     </ScrollArea>
   );
-} 
+}
