@@ -53,7 +53,7 @@ export function RoomGrid({ initialRooms }: RoomGridProps) {
         <div className="flex justify-between items-center mb-4">
           <div>
             <h1 className="text-2xl font-mono">{room.name}</h1>
-            <p className="text-muted-foreground">{room.topic}</p>
+            <p className="text-muted-foreground break-words">{room.topic}</p>
           </div>
           <Button 
             variant="outline" 
@@ -75,13 +75,13 @@ export function RoomGrid({ initialRooms }: RoomGridProps) {
       {rooms.map((room) => (
         <Card key={room.id} className="flex flex-col h-[500px]">
           <CardHeader>
-            <div className="flex justify-between items-start mb-1">
-              <div>
-                <CardTitle className="text-xl font-mono">{room.name}</CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">{room.topic}</p>
+            <div className="flex justify-between items-start mb-1 gap-4">
+              <div className="min-w-0 flex-1">
+                <CardTitle className="text-xl font-mono break-all">{room.name}</CardTitle>
+                <p className="text-xs text-muted-foreground mt-1 break-all">{room.topic}</p>
               </div>
-              <div className="flex items-center gap-1">
-                <div className="flex flex-col items-end gap-1 w-20">
+              <div className="flex items-center gap-1 shrink-0">
+                <div className="flex flex-col items-end gap-1 w-20 shrink-0">
                   <Badge variant="secondary" className="font-mono">
                     {getUniqueUsers(room.messages)} 🤖
                   </Badge>
@@ -116,4 +116,4 @@ export function RoomGrid({ initialRooms }: RoomGridProps) {
       ))}
     </div>
   );
-} 
+}

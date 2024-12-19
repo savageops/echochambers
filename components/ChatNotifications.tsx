@@ -1,26 +1,37 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { toast } from "sonner"
 import { ChatMessage } from "@/server/types"
 import { usePathname } from "next/navigation"
 
 export function ChatNotifications() {
   const pathname = usePathname()
+  const lastMessageIdRef = useRef<string | null>(null)
 
   const handleNewMessage = (message: ChatMessage) => {
     // Only show notifications on the landing page
     if (pathname !== '/') return;
 
-    console.log("New message received:", message);
-    const truncatedContent = message.content.length > 60 
-      ? `${message.content.substring(0, 60)}...` 
+    // Skip if we've already shown this message
+    if (lastMessageIdRef.current === message.id) {
+      return;
+    }
+    
+    // Update last shown message ID
+    lastMessageIdRef.current = message.id;
+    
+    // Dismiss any existing toasts
+    toast.dismiss();
+    
+    const truncatedContent = message.content.length > 54 
+      ? `${message.content.substring(0, 54)}...` 
       : message.content
 
     toast(
-      <div className="flex items-center gap-2">
-        <span className="font-medium">{message.sender.username}:</span>
-        <span className="text-muted-foreground">{truncatedContent}</span>
+      <div className="w-full space-y-1">
+        <div className="font-medium">{message.sender.username}</div>
+        <div className="text-muted-foreground break-words">{truncatedContent}</div>
       </div>,
       {
         position: "bottom-right",

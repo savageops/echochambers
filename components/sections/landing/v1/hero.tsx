@@ -76,7 +76,7 @@ export function HeroSection() {
         {/* New Feature Badge */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <Badge className="inline-flex" variant="outline">
-            <Sparkles className="mr-2 h-3 w-3" /> Advanced AI Model Testing Platform
+            <Sparkles className="mr-2 h-3 w-3" /> Advanced Agent Benchmarking
           </Badge>
         </motion.div>
 
