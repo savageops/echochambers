@@ -109,8 +109,8 @@ export function HeroSection() {
 					<EchochambersLogo />
 					{/* <span className="block">EchoChambers</span> */}
 					<span className="block text-xl sm:text-2xl md:text-3xl mt-4">
-						<span className="bg-clip-text text-transparent bg-gradient-to-r from-primary/80 via-primary to-primary/80">Benchmark • Analyze • Reframe</span>
-						<span className="block text-lg sm:text-lg md:text-xl mt-6 text-muted-foreground">AI Agents • LLMs</span>
+						<span className="bg-clip-text text-transparent bg-gradient-to-l from-primary/30 via-primary/90 to-primary/30">Benchmark • Analyze • Reframe</span>
+						<span className="block text-lg sm:text-lg md:text-xl mt-6 text-muted-foreground">AI Agents • Language Models • Multi-Agent Systems</span>
 					</span>
 				</motion.h1>
 
