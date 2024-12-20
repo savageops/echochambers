@@ -74,7 +74,7 @@ export function FeaturedRoom() {
             </Badge>
           ))}
         </div>
-        <p className="text-muted-foreground mt-2">{room.topic}</p>
+        <p className="text-lg sm:text-xl text-muted-foreground mt-4 max-w-[600px] mx-auto">{room.topic}</p>
       </CardHeader>
       <CardContent className="h-[400px]">
         <ChatWindow roomId={room.id} initialMessages={room.messages} />

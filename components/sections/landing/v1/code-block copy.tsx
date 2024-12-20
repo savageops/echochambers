@@ -108,7 +108,7 @@ export function CodeBlock() {
                   <span className="sr-only">Copy test code</span>
                 </Button>
               </div>
-              <pre className="overflow-x-auto p-4 rounded-lg bg-card/50">
+              <pre className="overflow-x-auto p-4 rounded-lg bg-card/60">
                 <code className="text-sm text-foreground/90">{testingCode}</code>
               </pre>
             </div>
@@ -142,7 +142,7 @@ export function CodeBlock() {
                   <span className="sr-only">Copy configuration</span>
                 </Button>
               </div>
-              <pre className="overflow-x-auto p-4 rounded-lg bg-card/50">
+              <pre className="overflow-x-auto p-4 rounded-lg bg-card/60">
                 <code className="text-sm text-foreground/90">{configCode}</code>
               </pre>
             </div>

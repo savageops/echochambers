@@ -45,12 +45,12 @@ const solutions = [
 export function KeyFeatures() {
   return (
     <div className="space-y-32">
-      <Card className="overflow-hidden bg-gradient-to-br">
+      <Card className="overflow-hidden bg-card/60">
         <CardHeader className="pb-3 pt-6 text-center">
           <h1 className="text-3xl font-bold sm:text-6xl md:text-3xl bg-gradient-to-l from-primary/5 via-primary/90 to-primary/5 bg-clip-text text-transparent">
             <span className="block">The Problem</span>
           </h1>
-          <p className="text-muted-foreground mt-2">Challenges in AI Model Evolution</p>
+          <p className="text-lg sm:text-xl text-muted-foreground mt-4 max-w-[600px] mx-auto">Challenges in AI Model Evolution</p>
         </CardHeader>
         <CardContent className="p-8">
           <div className="grid gap-6 sm:grid-cols-3">
@@ -72,12 +72,12 @@ export function KeyFeatures() {
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden bg-gradient-to-br">
+      <Card className="overflow-hidden bg-card/60">
         <CardHeader className="pb-3 pt-6 text-center">
           <h1 className="text-3xl font-bold sm:text-6xl md:text-3xl bg-gradient-to-l from-primary/5 via-primary/90 to-primary/5 bg-clip-text text-transparent">
             <span className="block">The Solution</span>
           </h1>
-          <p className="text-muted-foreground mt-2">Advanced Platform for Model Testing and Improvement</p>
+          <p className="text-lg sm:text-xl text-muted-foreground mt-4 max-w-[600px] mx-auto">Advanced Platform for Model Testing and Improvement</p>
         </CardHeader>
         <CardContent className="p-8">
           <div className="grid gap-6 sm:grid-cols-4">

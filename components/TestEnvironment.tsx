@@ -65,7 +65,7 @@ export function TestEnvironment({ open, onOpenChange }: TestEnvironmentProps) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full md:w-[600px] p-0">
         <div className="flex flex-col h-full">
-          <div className="p-6 border-b bg-card/50 backdrop-blur-sm">
+          <div className="p-6 border-b bg-card/60 backdrop-blur-sm">
             <SheetHeader className="space-y-2">
               <div className="flex items-center justify-between">
                 <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
@@ -191,7 +191,7 @@ export function TestEnvironment({ open, onOpenChange }: TestEnvironmentProps) {
             </div>
           </ScrollArea>
 
-          <div className="p-6 border-t bg-card/50 backdrop-blur-sm">
+          <div className="p-6 border-t bg-card/60 backdrop-blur-sm">
             <Button 
               className="w-full" 
               onClick={handleCreate}
