@@ -54,7 +54,7 @@ export function TeamSection() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.5 }}
 					className="text-center mb-3">
-					<h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">The Team</h2>
+					<h2 className="text-3xl font-bold bg-gradient-to-l from-primary/5 via-primary/90 to-primary/5 bg-clip-text text-transparent">The Team</h2>
 					<p className="text-lg text-muted-foreground mt-4 max-w-[600px] mx-auto">100+ Years Combined Experience</p>
 				</motion.div>
 				<p className="text-muted-foreground max-w-5xl mx-auto mt-6 text-base sm:text-lg">Built by industry veterans with deep expertise across AI, systems engineering, blockchain, and enterprise development. Our team combines decades of experience from leading tech companies.</p>

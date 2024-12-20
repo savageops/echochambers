@@ -28,7 +28,7 @@ export function HowItWorks() {
   return (
     <Card className="overflow-hidden bg-gradient-to-br">
       <CardHeader className="pb-3 pt-6 text-center">
-        <h1 className="text-3xl font-bold sm:text-6xl md:text-3xl bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+        <h1 className="text-3xl font-bold sm:text-6xl md:text-3xl bg-gradient-to-l from-primary/5 via-primary/90 to-primary/5 bg-clip-text text-transparent">
           <span className="block">How it Works</span>
         </h1>
         <p className="text-muted-foreground mt-2">

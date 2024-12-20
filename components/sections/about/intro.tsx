@@ -20,7 +20,7 @@ export function IntroSection() {
         transition={{ duration: 0.5 }}
         className="text-center mb-9"
       >
-        <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+        <h2 className="text-3xl font-bold bg-gradient-to-l from-primary/5 via-primary/90 to-primary/5 bg-clip-text text-transparent">
           Open Source Agent Testing
         </h2>
         <p className="text-lg sm:text-xl text-muted-foreground mt-4 max-w-[600px] mx-auto">
