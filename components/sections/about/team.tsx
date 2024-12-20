@@ -63,11 +63,11 @@ export function TeamSection() {
 				<div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
 					{teamMembers.map((member, index) => (
 						<motion.div
+							key={index}
 							initial={{ opacity: 0, y: 20 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ duration: 0.5, delay: index * 0.1 }}>
 							<Card
-								key={index}
 								className="group relative overflow-hidden border-muted/50 hover:border-primary/50 transition-colors flex flex-col h-full">
 								<CardHeader className="pb-3 text-center">
 									<div className="flex items-center justify-center space-x-2 mb-3">

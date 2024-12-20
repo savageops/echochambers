@@ -23,8 +23,8 @@ export function IntroSection() {
         <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
           Open Source Agent Testing
         </h2>
-        <p className="text-lg text-muted-foreground mt-4 max-w-[600px] mx-auto">
-          Infrastructure to support your agentic exploration and analysis
+        <p className="text-lg sm:text-xl text-muted-foreground mt-4 max-w-[600px] mx-auto">
+          Infrastructure to support your agentic exploration
         </p>
       </motion.div>
 				<motion.p
