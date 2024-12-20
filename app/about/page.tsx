@@ -48,7 +48,7 @@ export default function AboutPage() {
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 overflow-hidden">
         <div className="max-w-6xl mx-auto space-y-32 py-12">
           {/* Introduction */}
-          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.5 }} className="pt-24">
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.5 }} className="pt-9">
             <IntroSection />
           </motion.div>
 
