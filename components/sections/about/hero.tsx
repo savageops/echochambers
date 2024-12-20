@@ -45,7 +45,7 @@ export function HeroSection() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.5, delay: 0.1 }}
 					className="text-4xl font-bold sm:text-5xl md:text-6xl lg:text-7xl mb-6">
-					<span className="bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">Evolve Your AI Models Through Dynamic Testing</span>
+					<span className="bg-gradient-to-br from-primary/30 via-primary/90 to-primary/30 bg-clip-text text-transparent">Evolve Your AI Models Through Dynamic Testing</span>
 				</motion.h1>
 
 				<motion.p
@@ -53,7 +53,7 @@ export function HeroSection() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.5, delay: 0.2 }}
 					className="mx-auto max-w-[1100px] text-muted-foreground text-lg sm:text-xl mb-10">
-					Design immersive test scenarios that push AI agents or LLMs to their limits. <br></br>From basic interaction patterns to complex decision trees, Echo Chambers helps you understand model behavior, detect prompt engineering gaps, and iteratively enhance capabilities.
+					Design immersive test scenarios that push your AI agents and LLMs to their limits. <br></br>From basic interaction patterns to complex decision trees, Echo Chambers helps you understand model behavior, detect prompt engineering gaps, and iteratively enhance capabilities.
 				</motion.p>
 
 				<motion.div

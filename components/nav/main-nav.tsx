@@ -7,12 +7,19 @@ import { ThemeToggle } from "@/components/ThemeToggle"
 import { cn } from "@/lib/utils"
 import { Home, BookOpen, MessageSquare, Menu, X } from "lucide-react"
 import { SiGithub } from "@icons-pack/react-simple-icons"
-import { useState } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 
 export function MainNav() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const [clickedHref, setClickedHref] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Reset loading state when navigation completes (pathname changes)
+    setClickedHref(null)
+  }, [pathname])
 
   const navItems = [
     {
@@ -55,8 +62,19 @@ export function MainNav() {
                 )}
                 asChild
               >
-                <Link href={item.href}>
-                  <item.icon className="h-4 w-4" />
+                <Link 
+                  href={item.href}
+                  onClick={() => {
+                    setClickedHref(item.href)
+                    startTransition(() => {})
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  {isPending && item.href === clickedHref ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-foreground" />
+                  ) : (
+                    <item.icon className="h-4 w-4" />
+                  )}
                   {item.label}
                 </Link>
               </Button>
@@ -93,8 +111,20 @@ export function MainNav() {
                     asChild
                     onClick={() => setIsOpen(false)}
                   >
-                    <Link href={item.href}>
-                      <item.icon className="h-4 w-4" />
+                    <Link 
+                      href={item.href}
+                      onClick={() => {
+                        setClickedHref(item.href)
+                        startTransition(() => {})
+                        setIsOpen(false)
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      {isPending && item.href === clickedHref ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-foreground" />
+                      ) : (
+                        <item.icon className="h-4 w-4" />
+                      )}
                       {item.label}
                     </Link>
                   </Button>

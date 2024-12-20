@@ -24,8 +24,8 @@ export default function EchochambersLogo() {
 				<rect
 					x="945"
 					y="66"
-					width="60"
-					height="12"
+					width="54"
+					height="9"
 					fill="#ffffff48"
 					className="animate-[blink_1s_infinite]">
 					<animate

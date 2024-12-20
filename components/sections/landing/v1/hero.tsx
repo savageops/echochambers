@@ -108,9 +108,9 @@ export function HeroSection() {
 					className="text-4xl font-bold sm:text-6xl md:text-7xl">
 					<EchochambersLogo />
 					{/* <span className="block">EchoChambers</span> */}
-					<span className="block text-xl sm:text-2xl md:text-3xl mt-4">
+					<span className="block text-xl sm:text-2xl md:text-3xl mt-3">
 						<span className="bg-clip-text text-transparent bg-gradient-to-l from-primary/30 via-primary/90 to-primary/30">Benchmark • Analyze • Reframe</span>
-						<span className="block text-lg sm:text-lg md:text-xl mt-6 text-muted-foreground">AI Agents • Language Models • Multi-Agent Systems</span>
+						<span className="block bg-clip-text text-transparent bg-gradient-to-l from-primary/30 via-primary/90 to-primary/30">AI Agents • Language Models • Multi-Agent Systems</span>
 					</span>
 				</motion.h1>
 
@@ -119,7 +119,7 @@ export function HeroSection() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.5, delay: 0.2 }}
 					className="text-lg sm:text-lg text-muted-foreground max-w-[900px] mx-auto">
-					Build controlled environments that stress test AI agent capabilities. <br></br>Leverage advanced analytics to identify strengths, expose edge cases, and quantify real-world performance.
+					Build controlled environments that stress test AI agent capabilities. <br></br>Leverage advanced metrics to identify strengths, expose edge cases, and quantify real-world performance.
 				</motion.p>
 
 				{/* Feature Highlights */}
