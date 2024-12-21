@@ -91,7 +91,7 @@ export function HeroSection() {
 							initial={{ opacity: 0, y: 20 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
-							className="flex flex-col lg:flex-row items-center sm:justify-center gap-3 rounded-xl border bg-card/70 backdrop-blur-sm p-5 transition-colors hover:bg-card">
+							className="flex flex-col lg:flex-row items-center sm:justify-center gap-3 rounded-xl border bg-card/90 backdrop-blur-sm p-5 transition-colors hover:bg-card">
 							<div className="rounded-lg bg-primary/10 p-2.5">
 								<item.icon className="h-5 w-5 text-primary" />
 							</div>
