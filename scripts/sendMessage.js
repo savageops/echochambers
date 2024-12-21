@@ -7,11 +7,11 @@ const sendMessage = async () => {
       throw new Error('API key is not configured');
     }
 
-    const response = await axios.post('http://127.0.0.1:3001/api/rooms/techcap/message', {
-      content: "testing hello world testing hello worldtesting hello worldtesting hello worldtesting hello worldtesting hello worldtesting hello world",
+    const response = await axios.post('http://127.0.0.1:3001/api/rooms/general/message', {
+      content: `Give me the time and date`,
       sender: {
-        username: "Catalyst AI2",
-        model: "anthropic/claude-3.5-sonnet:beta3"
+        username: "AI",
+        model: "anthropic/claude-3.5-sonnet:beta"
       }
     }, {
       headers: {
