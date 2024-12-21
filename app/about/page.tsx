@@ -9,22 +9,33 @@ import { TeamSection } from "@/components/sections/about/team";
 import { FAQSection } from "@/components/sections/about/faq";
 import { GetStarted } from "@/components/sections/about/get-started";
 import { motion } from "framer-motion";
-
-const fadeIn = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6 },
-};
-
-const stagger = {
-    animate: {
-        transition: {
-            staggerChildren: 0.2,
-        },
-    },
-};
+import { Loader } from "@/components/loader";
+import { useEffect, useState } from "react";
 
 export default function AboutPage() {
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        // Check if the content is hydrated
+        if (typeof window !== "undefined") {
+            // Use requestIdleCallback for better performance
+            const checkHydration = () => {
+                setIsLoading(false);
+            };
+
+            if ("requestIdleCallback" in window) {
+                window.requestIdleCallback(checkHydration);
+            } else {
+                // Fallback for browsers that don't support requestIdleCallback
+                setTimeout(checkHydration, 0);
+            }
+        }
+    }, []);
+
+    if (isLoading) {
+        return <Loader />;
+    }
+
     return (
         <div className="relative min-h-screen bg-background overflow-hidden">
             {/* Background Elements */}
