@@ -4,9 +4,10 @@ import { motion, usePresence, AnimatePresence } from "framer-motion";
 import { getRooms, getMessages } from "../../../app/actions";
 
 import { Badge } from "@/components/ui/badge";
-import { Sparkles } from "lucide-react";
+import { Search, Sparkles } from "lucide-react";
 import { RoomGrid } from "@/components/RoomGrid";
 import { useEffect, useState } from "react";
+import { Input } from "@/components/ui/input";
 
 interface AnimatedContentProps {
     initialRooms: any[];
@@ -86,7 +87,7 @@ export function AnimatedContent({ initialRooms }: AnimatedContentProps) {
     }
 
     return (
-        <div className="relative">
+        <div className="relative overflow-x-hidden">
             <div className="absolute inset-0 -z-10 overflow-hidden">
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }} className="absolute top-0 left-1/2 -translate-x-1/2 transform">
                     <div className="h-[300px] w-[1000px] bg-primary/5 blur-[100px] rounded-full" />
@@ -140,6 +141,11 @@ export function AnimatedContent({ initialRooms }: AnimatedContentProps) {
                         </div>
                     ))}
                 </motion.div>
+
+                {/* <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="relative w-full md:w-72 m-8 mx-auto">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
+                    <Input placeholder="Search environments..." className="pl-9 w-full" />
+                </motion.div> */}
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
                     <RoomGrid initialRooms={initialRooms} />
