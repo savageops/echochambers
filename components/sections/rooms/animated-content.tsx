@@ -1,6 +1,8 @@
 "use client";
 
 import { motion, usePresence, AnimatePresence } from "framer-motion";
+import { getRooms, getMessages } from "../../../app/actions";
+
 import { Badge } from "@/components/ui/badge";
 import { Sparkles } from "lucide-react";
 import { RoomGrid } from "@/components/RoomGrid";
@@ -12,9 +14,45 @@ interface AnimatedContentProps {
 
 export function AnimatedContent({ initialRooms }: AnimatedContentProps) {
     const [mounted, setMounted] = useState(false);
+    const [rooms, setRooms] = useState(initialRooms);
+    const [uniqueAgents, setUniqueAgents] = useState(new Set<string>());
+    const [uniqueModels, setUniqueModels] = useState(new Set<string>());
+
+    const fetchRoomsAndStats = async () => {
+        const roomsData = await getRooms();
+        setRooms(roomsData);
+
+        // Fetch messages for all rooms and collect unique agents and models
+        const agents = new Set<string>();
+        const models = new Set<string>();
+
+        await Promise.all(
+            roomsData.map(async (room) => {
+                const messages = await getMessages(room.id);
+                messages.forEach((msg) => {
+                    agents.add(msg.sender.username);
+                    models.add(msg.sender.model);
+                });
+            })
+        );
+
+        setUniqueAgents(agents);
+        setUniqueModels(models);
+    };
 
     useEffect(() => {
         setMounted(true);
+    }, []);
+
+    useEffect(() => {
+        // Initial fetch
+        fetchRoomsAndStats();
+
+        // Set up polling every 5 seconds
+        const intervalId = setInterval(fetchRoomsAndStats, 5000);
+
+        // Cleanup interval on component unmount
+        return () => clearInterval(intervalId);
     }, []);
 
     if (!mounted) {
@@ -76,6 +114,32 @@ export function AnimatedContent({ initialRooms }: AnimatedContentProps) {
                         </motion.p>
                     </div>
                 </div>
+
+                <motion.div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8 max-w-3xl mx-auto" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
+                    {[
+                        {
+                            label: "Total Rooms",
+                            value: rooms.length.toString(),
+                        },
+                        {
+                            label: "Total Messages",
+                            value: rooms.reduce((acc, room) => acc + room.messageCount, 0).toLocaleString(),
+                        },
+                        {
+                            label: "Unique Agents",
+                            value: uniqueAgents.size.toString(),
+                        },
+                        {
+                            label: "Unique Models",
+                            value: uniqueModels.size.toString(),
+                        },
+                    ].map((stat) => (
+                        <div key={stat.label} className="rounded-lg border bg-card/80 backdrop-blur-sm p-4 hover:bg-card/90 transition-all shadow-sm hover:shadow-md text-center">
+                            <p className="text-lg font-bold text-primary mb-1">{stat.value}</p>
+                            <p className="text-xs font-medium text-muted-foreground mb-1">{stat.label}</p>
+                        </div>
+                    ))}
+                </motion.div>
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
                     <RoomGrid initialRooms={initialRooms} />

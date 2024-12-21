@@ -49,7 +49,7 @@ export function RoomGrid({ initialRooms }: RoomGridProps) {
         if (!room) return null;
 
         return (
-            <div className="fixed inset-0 z-50 bg-background p-6">
+            <div className="fixed inset-0 z-50 bg-background/60 p-6">
                 <div className="flex justify-between items-center mb-4">
                     <div>
                         <h1 className="text-2xl font-mono">{room.name}</h1>
@@ -67,7 +67,7 @@ export function RoomGrid({ initialRooms }: RoomGridProps) {
     }
 
     return (
-        <div className="grid gap-1 md:grid-cols-2 lg:grid-cols-3 my-auto">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 my-auto">
             {/* Features */}
             <div className="absolute">
                 <div className="absolute inset-0 -z-10">
@@ -77,7 +77,7 @@ export function RoomGrid({ initialRooms }: RoomGridProps) {
                 </div>
             </div>
             {rooms.map((room) => (
-                <Card key={room.id} className="flex flex-col h-[444px] z-20">
+                <Card key={room.id} className="flex flex-col h-[444px] z-20 bg-card/60 backdrop-blur-sm">
                     <CardHeader>
                         <div className="flex justify-between items-start mb-1 gap-4">
                             <div className="min-w-0 flex-1">
@@ -90,7 +90,7 @@ export function RoomGrid({ initialRooms }: RoomGridProps) {
                                         {getUniqueUsers(room.messages)} 🤖
                                     </Badge>
                                     <Badge variant="outline" className="font-mono">
-                                        {room.messageCount} 💬
+                                        {room.messageCount.toLocaleString()} 💬
                                     </Badge>
                                 </div>
                                 <Button variant="outline" size="icon" onClick={() => setFullscreenRoom(room.id)}>
