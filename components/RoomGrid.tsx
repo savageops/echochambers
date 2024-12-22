@@ -1,12 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Maximize2 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Slider } from "@/components/ui/slider";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Maximize2, Users, MessageSquare, Activity, Brain, BarChart2, ArrowLeft, Plus, Gauge, Beaker, Search } from "lucide-react";
 import { ChatRoom, ChatMessage } from "@/server/types";
 import { ChatWindow } from "./ChatWindow";
+import { RadarChart } from "./RadarChart";
+import { TestEnvironment } from "./TestEnvironment";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "./ui/input";
 
 interface RoomGridProps {
     initialRooms: (ChatRoom & { messages: ChatMessage[] })[];
@@ -49,20 +60,72 @@ export function RoomGrid({ initialRooms }: RoomGridProps) {
         if (!room) return null;
 
         return (
-            <div className="fixed inset-0 z-50 bg-background/60 p-6">
-                <div className="flex justify-between items-center mb-4">
-                    <div>
-                        <h1 className="text-2xl font-mono">{room.name}</h1>
-                        <p className="text-muted-foreground break-words">{room.topic}</p>
+            <Sheet open={!!fullscreenRoom} onOpenChange={() => setFullscreenRoom(null)}>
+                <SheetContent side="left" className="w-full md:max-w-[60%] xl:max-w-[42%] p-0">
+                    <div className="flex flex-col h-full">
+                        {/* Header */}
+                        <div className="p-6 border-b bg-card/50">
+                            <SheetHeader className="space-y-4">
+                                <div className="space-y-2">
+                                    <SheetTitle className="text-2xl">{room.name}</SheetTitle>
+                                    <p className="text-muted-foreground">{room.topic}</p>
+                                </div>
+                                <div className="flex items-center gap-4 text-sm">
+                                    <div className="flex items-center gap-1.5">
+                                        <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                                        <span className="font-medium">{getUniqueUsers(room.messages)} participants</span>
+                                    </div>
+                                    <Separator orientation="vertical" className="h-4" />
+                                    <div className="flex items-center gap-1.5">
+                                        <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                                        <span className="font-medium">{room.messageCount} messages</span>
+                                    </div>
+                                    <Separator orientation="vertical" className="h-4" />
+                                    <div className="flex items-center gap-1.5">
+                                        <Brain className="h-3.5 w-3.5 text-muted-foreground" />
+                                        {/* <ModelBadges models={getModelsForRoom(room)} /> */}
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {room.tags.map((tag) => (
+                                        <Badge key={tag} variant="outline" className="bg-background/50">
+                                            {tag}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </SheetHeader>
+                        </div>
+
+                        {/* Tabs */}
+                        <Tabs defaultValue="chat" className="flex-1">
+                            <div className="border-b bg-card/50">
+                                <TabsList className="w-full justify-start rounded-none border-b px-6">
+                                    <TabsTrigger value="chat" className="data-[state=active]:bg-background">
+                                        Chat
+                                    </TabsTrigger>
+                                    {/* <TabsTrigger value="metrics" className="data-[state=active]:bg-background">
+                                        Metrics
+                                    </TabsTrigger> */}
+                                </TabsList>
+                            </div>
+
+                            <TabsContent value="chat" className="flex-1 p-0 m-0">
+                                <ScrollArea className="h-[calc(100vh-15rem)]">
+                                    <div className="p-6">
+                                        <ChatWindow roomId={room.id} initialMessages={room.messages} />
+                                    </div>
+                                </ScrollArea>
+                            </TabsContent>
+
+                            <TabsContent value="metrics" className="flex-1 p-0 m-0">
+                                <ScrollArea className="h-[calc(100vh-15rem)]">
+                                    {/* <MetricsDisplay metrics={getModelStats(room).data} /> */}
+                                </ScrollArea>
+                            </TabsContent>
+                        </Tabs>
                     </div>
-                    <Button variant="outline" size="icon" onClick={() => setFullscreenRoom(null)}>
-                        <Maximize2 className="h-4 w-4" />
-                    </Button>
-                </div>
-                <div className="h-[calc(100vh-8rem)]">
-                    <ChatWindow roomId={room.id} initialMessages={room.messages} />
-                </div>
-            </div>
+                </SheetContent>
+            </Sheet>
         );
     }
 
