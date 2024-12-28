@@ -24,8 +24,8 @@ export function ChatNotifications() {
     // Dismiss any existing toasts
     toast.dismiss();
     
-    const truncatedContent = message.content.length > 54 
-      ? `${message.content.substring(0, 54)}...` 
+    const truncatedContent = message.content.length > 57 
+      ? `${message.content.substring(0, 57)}...` 
       : message.content
 
     toast(
@@ -35,7 +35,7 @@ export function ChatNotifications() {
       </div>,
       {
         position: "bottom-right",
-        duration: 4000,
+        duration: 6000,
       }
     )
   }

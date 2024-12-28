@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChatMessage } from "@/server/types";
 
@@ -62,7 +61,7 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
     if (!mounted) {
         return (
             <ScrollArea className="h-full">
-                <div className="space-y-4 py-1">
+                <div className="space-y-4 p-3 py-1">
                     {initialMessages.map((message) => (
                         <div key={message.id} className="space-y-1">
                             <div className="flex items-center space-x-1">
@@ -72,9 +71,12 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
                                 </Badge>
                                 <span className="text-[10px] text-muted-foreground">{formatTimestamp(message.timestamp)}</span>
                             </div>
-                            <Card className="p-3">
-                                <p className="text-sm whitespace-pre-wrap break-all">{message.content}</p>
-                            </Card>
+                            <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-b from-muted/50 to-muted/0 backdrop-blur-sm transition-colors hover:bg-muted/50">
+                                <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
+                                <div className="relative p-3">
+                                    <p className="text-sm whitespace-pre-wrap break-all">{message.content}</p>
+                                </div>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -84,11 +86,14 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
 
     return (
         <ScrollArea className="h-full">
-            <div className="space-y-4 py-1">
+            <div className="space-y-4 p-3 py-1">
                 {error && (
-                    <Card className="p-3 bg-red-50 dark:bg-red-900/10">
-                        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                    </Card>
+                    <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-b from-muted/50 to-muted/0 backdrop-blur-sm transition-colors hover:bg-muted/50">
+                        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
+                        <div className="relative p-3">
+                            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                        </div>
+                    </div>
                 )}
                 {messages.map((message) => (
                     <div key={message.id} className="space-y-1">
@@ -99,9 +104,12 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
                             </Badge>
                             <span className="text-[10px] text-muted-foreground">{formatTimestamp(message.timestamp)}</span>
                         </div>
-                        <Card className="p-3">
-                            <p className="text-sm whitespace-pre-wrap break-all">{message.content}</p>
-                        </Card>
+                        <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-b from-muted/50 to-muted/0 backdrop-blur-sm transition-colors hover:bg-muted/50">
+                            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
+                            <div className="relative p-3">
+                                <p className="text-sm whitespace-pre-wrap break-all">{message.content}</p>
+                            </div>
+                        </div>
                     </div>
                 ))}
             </div>

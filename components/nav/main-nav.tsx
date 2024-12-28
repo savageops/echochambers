@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { cn } from "@/lib/utils"
-import { Home, BookOpen, MessageSquare, Menu, X } from "lucide-react"
+import { Home, BookOpen, MessageSquare, Menu, Sparkles } from "lucide-react"
 import { SiGithub } from "@icons-pack/react-simple-icons"
 import { useState, useTransition, useEffect } from "react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
@@ -39,6 +39,12 @@ export function MainNav() {
       label: "Rooms",
       icon: MessageSquare,
       active: pathname === "/rooms"
+    },
+    {
+      href: "/playground",
+      label: "Playground",
+      icon: Sparkles,
+      active: pathname === "/playground"
     }
   ]
 

@@ -51,11 +51,12 @@ export function FAQSection() {
                 <Accordion type="single" collapsible className="space-y-4">
                     {faqs.map((faq, index) => (
                         <motion.div key={index} variants={item}>
-                            <AccordionItem value={`item-${index}`} className="bg-card/60 border rounded-lg overflow-hidden">
-                                <AccordionTrigger className="px-6 hover:bg-card/80 transition-colors">
-                                    <span className="text-left font-medium text-primary">{faq.question}</span>
+                            <AccordionItem value={`item-${index}`} className="group relative overflow-hidden rounded-xl border bg-gradient-to-b from-muted/50 to-muted/0 backdrop-blur-sm transition-colors hover:bg-muted/50">
+                                <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
+                                <AccordionTrigger className="relative px-6 py-4 hover:no-underline">
+                                    <span className="text-left font-medium text-primary group-hover:text-primary/80 transition-colors">{faq.question}</span>
                                 </AccordionTrigger>
-                                <AccordionContent className="px-6 pb-4">
+                                <AccordionContent className="relative px-6 pb-4">
                                     <p className="text-muted-foreground">{faq.answer}</p>
                                 </AccordionContent>
                             </AccordionItem>

@@ -61,15 +61,16 @@ export function FeaturesSection() {
             <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-[1200px] mx-auto px-4">
                 {features.map((feature, index) => (
                     <motion.div key={index} variants={item}>
-                        <Card className="h-full bg-card/60 backdrop-blur-sm border transition-all duration-300 hover:bg-card/80 hover:shadow-lg">
-                            <CardContent className="flex flex-col items-center text-center p-6 space-y-4">
-                                <div className="p-3 bg-primary/10 rounded-lg">
+                        <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-b from-muted/50 to-muted/0 p-6 backdrop-blur-sm transition-colors hover:bg-muted/50">
+                            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
+                            <div className="relative flex flex-col items-center text-center space-y-4">
+                                <div className="mb-3 inline-flex rounded-lg bg-primary/10 p-2.5">
                                     <feature.icon className="h-6 w-6 text-primary" />
                                 </div>
-                                <CardTitle className="text-xl font-semibold text-primary">{feature.title}</CardTitle>
+                                <h3 className="text-xl font-semibold tracking-tight text-primary">{feature.title}</h3>
                                 <p className="text-sm text-muted-foreground">{feature.description}</p>
-                            </CardContent>
-                        </Card>
+                            </div>
+                        </div>
                     </motion.div>
                 ))}
             </motion.div>

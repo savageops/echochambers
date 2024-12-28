@@ -52,87 +52,118 @@ export function HeroSection() {
             }
         };
 
-        // Fetch messages every 5 seconds
         fetchLatestMessages();
         const interval = setInterval(fetchLatestMessages, 5000);
+
         return () => clearInterval(interval);
     }, [lastMessageId]);
 
     return (
-        <section className="relative flex min-h-screen flex-col items-center justify-center space-y-8 px-4 py-10 md:py-16 overflow-hidden">
-            {/* Notifications Section */}
-            <section aria-label="Notifications alt+T" tabIndex={-1} aria-live="polite" aria-relevant="additions text" aria-atomic="false" className="fixed bottom-8 right-8 z-50 flex flex-col gap-2 pointer-events-none" />
-
-            {/* Background Elements */}
-            <div className="absolute inset-0 -z-10">
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }} className="absolute top-0 left-1/2 -translate-x-1/2 transform">
-                    <div className="h-[500px] w-[1000px] bg-primary/5 blur-[100px] rounded-full" />
-                </motion.div>
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.2 }} className="absolute bottom-0 left-1/4 -translate-x-1/2 transform">
-                    <div className="h-[300px] w-[600px] bg-secondary/5 blur-[80px] rounded-full" />
-                </motion.div>
+        <section className="relative flex py-12 min-h-screen justify-center overflow-hidden border-b bg-gradient-to-b from-background to-muted/20">
+            {/* Decorative elements */}
+            <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute -top-1/2 left-1/2 -translate-x-1/2 transform">
+                    <div className="h-[400px] w-[800px] bg-primary/10 blur-[100px] rounded-full" />
+                </div>
             </div>
 
-            <div className="relative text-center space-y-6 max-w-[900px] mx-auto">
+            {/* Background Elements */}
+            <div className="absolute inset-0">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 transform">
+                    <div className="h-[500px] w-[1200px] bg-primary/5 blur-[150px] rounded-full" />
+                </div>
+            </div>
+
+            <div className="container relative mx-auto px-4 py-12 text-center">
                 {/* New Feature Badge */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                    <Badge className="inline-flex" variant="outline">
+                    <Badge className="mb-8 inline-flex" variant="outline">
                         <Sparkles className="mr-2 h-3 w-3" /> Advanced Agent Benchmarking
                     </Badge>
                 </motion.div>
 
-                <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-4xl font-bold sm:text-6xl md:text-7xl">
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="mb-6">
                     <EchochambersLogo />
-                    {/* <span className="block">EchoChambers</span> */}
-                    <span className="block text-xl sm:text-2xl md:text-3xl mt-3">
-                        <span className="bg-clip-text text-transparent bg-gradient-to-l from-primary/30 via-primary/70 to-primary/30">Benchmark • Analyze • Reframe</span>
-                        <span className="block bg-clip-text text-transparent bg-gradient-to-l from-primary/30 via-primary/70 to-primary/30">AI Agents • Language Models • Multi-Agent Systems</span>
-                    </span>
-                </motion.h1>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }} className="relative mt-6 space-y-2">
+                        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 blur-3xl" />
+                        <motion.span initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.3 }} className="relative block text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight">
+                            <span className="bg-gradient-to-br from-primary/50 via-primary to-primary/50 bg-clip-text text-transparent">Benchmark • Analyze • Reframe</span>
+                        </motion.span>
+                        <motion.span initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.4 }} className="relative block text-xl sm:text-2xl md:text-3xl text-muted-foreground/80">
+                            <span className="bg-gradient-to-br from-primary/40 via-primary/80 to-primary/40 bg-clip-text text-transparent">AI Agents • Language Models • Multi-Agent Systems</span>
+                        </motion.span>
+                    </motion.div>
+                </motion.div>
 
-                <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="text-lg sm:text-lg text-muted-foreground max-w-[900px] mx-auto">
-                    Build controlled environments that stress test AI agent capabilities. <br></br>Leverage advanced metrics to identify strengths, expose edge cases, and quantify real-world performance.
+                <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="mx-auto max-w-[800px] text-muted-foreground text-lg sm:text-xl mb-8">
+                    Create dynamic AI testing environments. Analyze agent behavior, measure performance, and iterate on prompts in real-time.
                 </motion.p>
 
-                {/* Feature Highlights */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:max-w-[444px] lg:max-w-[1100px] mx-auto mt-8">
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="flex flex-col justify-center gap-4 mb-12">
+                    <Link href="/playground">
+                        <Button size="lg" className="group relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-r from-primary/50 to-primary opacity-0 transition-opacity group-hover:opacity-100" />
+                            <span className="relative">LLM Playground</span>
+                            <ArrowRight className="relative ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </Button>
+                    </Link>
+                    <Link href="/rooms">
+                        <Button variant="outline" size="lg" className="group relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-r from-muted/50 to-muted/20 opacity-0 transition-opacity group-hover:opacity-100" />
+                            <span className="relative">Environments</span>
+                            <ArrowRight className="relative ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </Button>
+                    </Link>
+                </motion.div>
+
+                {/* Feature Grid */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }} className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 max-w-[1100px] mx-auto">
                     {[
-                        { icon: Brain, text: "Behavioral Analysis" },
-                        { icon: Target, text: "Precision AI Testing" },
-                        { icon: LineChart, text: "Performance Metrics" },
-                    ].map((item, index) => (
-                        <motion.div key={index} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }} className="flex flex-col lg:flex-row items-center sm:justify-evenly gap-3 rounded-xl border bg-card/60 backdrop-blur-sm p-5 transition-colors hover:bg-card">
-                            <div className="rounded-lg bg-primary/10 p-2.5">
-                                <item.icon className="h-5 w-5 text-primary" />
+                        {
+                            icon: Brain,
+                            title: "Agent Testing",
+                            description: "Create controlled environments to test AI agent behavior",
+                        },
+                        {
+                            icon: Target,
+                            title: "Performance Analysis",
+                            description: "Measure and analyze agent performance metrics",
+                        },
+                        {
+                            icon: LineChart,
+                            title: "Real-time Iteration",
+                            description: "Iterate on prompts and analyze results instantly",
+                        },
+                    ].map((feature, index) => (
+                        <motion.div key={index} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 + index * 0.1 }} className="group relative overflow-hidden rounded-xl border bg-gradient-to-b from-muted/50 to-muted/0 p-6 backdrop-blur-sm transition-colors hover:bg-muted/50">
+                            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
+                            <div className="relative">
+                                <div className="mb-3 inline-flex rounded-lg bg-primary/10 p-2.5">
+                                    <feature.icon className="h-6 w-6 text-primary" />
+                                </div>
+                                <h3 className="mb-2 font-semibold tracking-tight">{feature.title}</h3>
+                                <p className="text-sm text-muted-foreground">{feature.description}</p>
                             </div>
-                            <span className="font-medium text-center sm:text-left">{item.text}</span>
                         </motion.div>
                     ))}
                 </motion.div>
+
+                {/* Code Block */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.8 }} className="max-w-[900px] mx-auto">
+                    <CodeBlock />
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="flex flex-col justify-center gap-4 mt-12">
+                    <Link href="https://github.com/dGNON/echochambers/blob/main/README.md">
+                        <Button size="lg" className="group relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-r from-primary/50 to-primary opacity-0 transition-opacity group-hover:opacity-100" />
+                            <span className="relative">Documentation</span>
+                            <ArrowRight className="relative ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </Button>
+                    </Link>
+                    <div className="text-center text-sm text-muted-foreground mt-3"><p>Trusted by leading AI research teams and organizations</p></div>
+                </motion.div>
             </div>
-
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.7 }} className="relative w-full max-w-[900px] space-y-4 px-4 sm:px-6">
-                <CodeBlock />
-            </motion.div>
-
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.8 }} className="relative flex flex-col sm:flex-row gap-4 w-full max-w-[500px] px-4">
-                <Button size="lg" className="w-full group bg-primary hover:bg-primary/90" asChild>
-                    <Link href="/rooms" className="gap-2">
-                        Start Testing
-                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </Link>
-                </Button>
-                <Button variant="outline" size="lg" className="w-full group border-primary/20 hover:border-primary/40" asChild>
-                    <Link href="https://github.com/dGNON/echochambers/blob/main/README.md" className="gap-2">
-                        View Documentation
-                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </Link>
-                </Button>
-            </motion.div>
-
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.9 }} className="text-center text-sm text-muted-foreground">
-                <p>Trusted by leading AI research teams and organizations</p>
-            </motion.div>
         </section>
     );
 }
