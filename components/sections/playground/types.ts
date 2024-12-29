@@ -5,6 +5,7 @@ export interface Message {
 }
 
 export interface ModelConfig {
+    ecapiKey: string;
     apiKey: string;
     baseUrl: string;
     model: string;
@@ -31,7 +32,6 @@ export interface AgentConfig {
     role: string;
     goals: string;
     constraints: string;
-    tools: string[];
     memory: boolean;
 }
 
@@ -45,6 +45,7 @@ export interface Function {
     name: string;
     description: string;
     parameters: string;
+    enabled: boolean;
 }
 
 export interface WorkspaceState {

@@ -22,7 +22,7 @@ async function makeApiRequest(messages: { role: string; content: string }[], mod
             model: modelConfig.model,
             messages,
             temperature: advancedConfig.temperature ?? 0.7,
-            max_tokens: advancedConfig.maxTokens ?? 2048,
+            max_tokens: advancedConfig.maxTokens ?? 4096,
             top_p: advancedConfig.topP ?? 1.0,
             frequency_penalty: advancedConfig.frequencyPenalty ?? 0.0,
             presence_penalty: advancedConfig.presencePenalty ?? 0.0,
@@ -70,7 +70,7 @@ function buildMessages(userMessage: string, previousResponse?: string): { role: 
         try {
             const parsedAgent = JSON.parse(agentConfig);
             if (parsedAgent && Object.keys(parsedAgent).length > 0) {
-                const agentPrompt = ["Agent Configuration:", `Role: ${parsedAgent.role || "Not specified"}`, `Goals: ${parsedAgent.goals || "Not specified"}`, `Constraints: ${parsedAgent.constraints || "Not specified"}`, `Tools: ${parsedAgent.tools?.join(", ") || "None"}`, `Memory Enabled: ${parsedAgent.memory ? "Yes" : "No"}`].join("\n");
+                const agentPrompt = ["Agent Configuration:", `Role: ${parsedAgent.role || "Not specified"}`, `Goals: ${parsedAgent.goals || "Not specified"}`, `Constraints: ${parsedAgent.constraints || "Not specified"}`, `Memory Enabled: ${parsedAgent.memory ? "Yes" : "No"}`].join("\n");
 
                 if (agentPrompt.trim()) {
                     messages.push({
@@ -140,7 +140,7 @@ function buildMessages(userMessage: string, previousResponse?: string): { role: 
     return messages;
 }
 
-async function processSteps(initialResponse: ChatResponse, modelConfig: any, advancedConfig: any, status: ProcessingStatus): Promise<ChatResponse> {
+async function processSteps(initialUserMessage: string, initialResponse: ChatResponse, modelConfig: any, advancedConfig: any, status: ProcessingStatus): Promise<ChatResponse> {
     let currentResponse = initialResponse;
 
     // Get steps configuration
@@ -172,10 +172,35 @@ async function processSteps(initialResponse: ChatResponse, modelConfig: any, adv
             // Notify step complete
             status.onStepComplete?.(stepNumber, step.name);
 
-            // If this step requires a checkpoint, we could handle that here
+            // If this step requires a checkpoint, store the user input and response
             if (step.checkpoint) {
-                // For now, just log it
-                console.log(`Checkpoint reached at step ${stepNumber}: ${step.name}`);
+                const checkpointData = {
+                    stepNumber,
+                    stepName: step.name,
+                    userInput: initialUserMessage,
+                    response: currentResponse.content,
+                };
+
+                // Store checkpoint data in localStorage
+                const existingCheckpoints = JSON.parse(localStorage.getItem(STORAGE_KEYS.CHECKPOINTS) || "[]");
+                existingCheckpoints.push(checkpointData);
+                localStorage.setItem(STORAGE_KEYS.CHECKPOINTS, JSON.stringify(existingCheckpoints));
+
+                // If there's a next step, add the checkpoint data to its prompt
+                if (i < steps.length - 1) {
+                    steps[i + 1].prompt = `**The following is a summary of important context from previous steps to be used with the USER. **
+{{ CHECKPOINT ${stepNumber} }}
+
+USER Intent:
+${checkpointData.userInput}
+
+Assistant Response:
+${checkpointData.response}
+
+**Note: this summary checkpoint from the last Step is just for your reference**
+
+${steps[i + 1].prompt}`;
+                }
             }
         }
     } catch (error) {
@@ -206,12 +231,11 @@ export async function sendChatMessage(message: string, status: ProcessingStatus 
 
         // Initial API request
         const messages = buildMessages(message);
-        
-        console.log("Message string:", messages);
+
         let response = await makeApiRequest(messages, modelConfig, advancedConfig);
 
         // Process through steps if any exist
-        response = await processSteps(response, modelConfig, advancedConfig, status);
+        response = await processSteps(message, response, modelConfig, advancedConfig, status);
 
         return response;
     } catch (error) {

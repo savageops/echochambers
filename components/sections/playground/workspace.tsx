@@ -10,7 +10,6 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { WorkspaceState } from "./types";
 import { ModelSettings } from "./settings/model-settings";
-import { PlaygroundTabs } from "./tabs";
 import { StepsTab } from "./tabs/steps-tab";
 import { FabricateTab } from "./tabs/fabricate-tab";
 import { SystemTab } from "./tabs/system-tab";
@@ -47,23 +46,35 @@ const initialState: WorkspaceState = {
     isLoading: false,
     modelConfig: {
         model: "gpt-4",
-        temperature: 0.7,
-        maxTokens: 2048,
+        temperature: 1.0,
+        maxTokens: 4096,
         topP: 1.0,
         frequencyPenalty: 0.0,
         presencePenalty: 0.0,
         stopSequences: [],
+        apiKey: "",
+        baseUrl: "",
+        responseFormat: "",
+        stream: false,
+        enableScheduling: false,
+        scheduleType: "",
+        maxRuns: 0,
+        cronExpression: "",
+        retryStrategy: "",
+        enableBatch: false,
+        batchSize: 0,
+        concurrency: 0,
+        debugMode: false,
     },
-    availableFunctions: [] as Function[], // Initialize availableFunctions as an empty array of Function objects
     promptTemplate: "",
     agentConfig: {
         role: "Assistant",
         goals: "",
         constraints: "",
-        tools: [],
         memory: true,
     },
     stepPrompts: [],
+    availableFunctions: [],
 };
 
 export function PlaygroundWorkspace() {
@@ -270,7 +281,6 @@ export function PlaygroundWorkspace() {
                                                         role: "Assistant",
                                                         goals: "",
                                                         constraints: "",
-                                                        tools: [],
                                                         memory: true,
                                                     }
                                                 }

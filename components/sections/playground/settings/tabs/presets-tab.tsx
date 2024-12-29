@@ -5,10 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Save, Upload, Download, History } from "lucide-react";
 import { ModelConfig } from "../../types";
+import { STORAGE_KEYS } from "@/lib/constants";
+import { toast } from "sonner";
 
 interface PresetsTabProps {
     modelConfig: ModelConfig;
     onModelConfigChange: (config: ModelConfig) => void;
+}
+
+interface PresetConfig {
+    temperature: number;
+    topP: number;
+    frequencyPenalty: number;
+    presencePenalty: number;
 }
 
 const presets = [
@@ -95,23 +104,40 @@ const presets = [
 ];
 
 export function PresetsTab({ modelConfig, onModelConfigChange }: PresetsTabProps) {
+    const applyPreset = (preset: { name: string; config: PresetConfig }) => {
+        try {
+            // Update model config
+            const updatedConfig = {
+                ...modelConfig,
+                ...preset.config,
+            };
+            onModelConfigChange(updatedConfig);
+
+            // Save to model config storage
+            localStorage.setItem(STORAGE_KEYS.MODEL_CONFIG, JSON.stringify(updatedConfig));
+
+            // Save to advanced config storage
+            const advancedConfig = {
+                responseFormat: modelConfig.responseFormat,
+                ...preset.config,
+                maxTokens: modelConfig.maxTokens,
+                stopSequences: modelConfig.stopSequences,
+                stream: modelConfig.stream,
+            };
+            localStorage.setItem(STORAGE_KEYS.ADVANCED_CONFIG, JSON.stringify(advancedConfig));
+
+            toast.success(`Applied ${preset.name} preset`);
+        } catch (error) {
+            console.error("Error applying preset:", error);
+            toast.error("Failed to apply preset");
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {presets.map((preset, index) => (
-                    <motion.div
-                        key={preset.name}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="group relative overflow-hidden rounded-xl border bg-gradient-to-b from-muted/50 to-muted/0 p-3 hover:bg-muted/50 transition-colors cursor-pointer"
-                        onClick={() =>
-                            onModelConfigChange({
-                                ...modelConfig,
-                                ...preset.config,
-                            })
-                        }
-                    >
+                    <motion.div key={preset.name} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="group relative overflow-hidden rounded-xl border bg-gradient-to-b from-muted/50 to-muted/0 p-3 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => applyPreset(preset)}>
                         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
                         <div className="relative space-y-1">
                             <h3 className="font-medium">{preset.name}</h3>

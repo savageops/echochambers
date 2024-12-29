@@ -12,8 +12,7 @@ import { ModelConfig } from "../../types";
 import { useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Key } from "lucide-react";
-
-const LOCAL_STORAGE_KEY = "playground_advanced_config";
+import { STORAGE_KEYS } from "@/lib/constants";
 
 // Default values for the advanced settings
 const DEFAULT_CONFIG = {
@@ -40,7 +39,7 @@ export function AdvancedTab({ modelConfig, onModelConfigChange }: AdvancedTabPro
         if (isInitializedRef.current) return;
         isInitializedRef.current = true;
 
-        const savedConfig = localStorage.getItem(LOCAL_STORAGE_KEY);
+        const savedConfig = localStorage.getItem(STORAGE_KEYS.ADVANCED_CONFIG);
         if (savedConfig) {
             try {
                 const parsedConfig = JSON.parse(savedConfig);
@@ -87,7 +86,7 @@ export function AdvancedTab({ modelConfig, onModelConfigChange }: AdvancedTabPro
             stream: modelConfig.stream,
         };
 
-        const currentSaved = localStorage.getItem(LOCAL_STORAGE_KEY);
+        const currentSaved = localStorage.getItem(STORAGE_KEYS.ADVANCED_CONFIG);
         if (currentSaved) {
             const currentConfig = JSON.parse(currentSaved);
             if (JSON.stringify(currentConfig) === JSON.stringify(configToSave)) {
@@ -95,7 +94,7 @@ export function AdvancedTab({ modelConfig, onModelConfigChange }: AdvancedTabPro
             }
         }
 
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(configToSave));
+        localStorage.setItem(STORAGE_KEYS.ADVANCED_CONFIG, JSON.stringify(configToSave));
     }, [modelConfig]);
 
     return (

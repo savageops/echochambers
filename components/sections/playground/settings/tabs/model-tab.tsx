@@ -7,8 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Key, Globe } from "lucide-react";
 import { ModelConfig } from "../../types";
 import { useEffect, useRef } from "react";
-
-const LOCAL_STORAGE_KEY = "playground_model_config";
+import { STORAGE_KEYS } from "@/lib/constants";
+import { Button } from "@/components/ui/button";
 
 interface ModelTabProps {
     modelConfig: ModelConfig;
@@ -23,12 +23,13 @@ export function ModelTab({ modelConfig, onModelConfigChange }: ModelTabProps) {
         if (isInitializedRef.current) return;
         isInitializedRef.current = true;
 
-        const savedConfig = localStorage.getItem(LOCAL_STORAGE_KEY);
+        const savedConfig = localStorage.getItem(STORAGE_KEYS.MODEL_CONFIG);
         if (savedConfig) {
             try {
                 const parsedConfig = JSON.parse(savedConfig);
                 onModelConfigChange({
                     ...modelConfig,
+                    ecapiKey: parsedConfig.ecapiKey || "",
                     apiKey: parsedConfig.apiKey || "",
                     baseUrl: parsedConfig.baseUrl || "",
                     model: parsedConfig.model || "",
@@ -44,12 +45,13 @@ export function ModelTab({ modelConfig, onModelConfigChange }: ModelTabProps) {
         if (!isInitializedRef.current) return; // Skip saving during initialization
 
         const configToSave = {
+            ecapiKey: modelConfig.ecapiKey,
             apiKey: modelConfig.apiKey,
             baseUrl: modelConfig.baseUrl,
             model: modelConfig.model,
         };
 
-        const currentSaved = localStorage.getItem(LOCAL_STORAGE_KEY);
+        const currentSaved = localStorage.getItem(STORAGE_KEYS.MODEL_CONFIG);
         if (currentSaved) {
             const currentConfig = JSON.parse(currentSaved);
             if (JSON.stringify(currentConfig) === JSON.stringify(configToSave)) {
@@ -57,15 +59,48 @@ export function ModelTab({ modelConfig, onModelConfigChange }: ModelTabProps) {
             }
         }
 
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(configToSave));
+        localStorage.setItem(STORAGE_KEYS.MODEL_CONFIG, JSON.stringify(configToSave));
     }, [modelConfig]);
 
     return (
         <div className="space-y-6">
-            {/* API Configuration */}
+            {/* EC SDK API Configuration */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">API Configuration</Label>
+                    <Label className="text-sm font-medium">ECSDK API Configuration</Label>
+                    <Badge variant="outline" className="font-mono text-xs">
+                        Required
+                    </Badge>
+                </div>
+                <Card className="p-4 space-y-4">
+                    <div className="space-y-2">
+                        <Label className="text-sm">ECSDK API Key</Label>
+                        <div className="relative">
+                            <Input
+                                type="password"
+                                placeholder="Enter your ECSDK API key"
+                                value={modelConfig.ecapiKey || ""}
+                                onChange={(e) =>
+                                    onModelConfigChange({
+                                        ...modelConfig,
+                                        ecapiKey: e.target.value,
+                                    })
+                                }
+                                className="pr-10"
+                            />
+                            <Key className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        </div>
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full" onClick={() => (window.location.href = "mailto:contact@echochambers.art?subject=Request%20for%20ECSDK%20API%20Key")}>
+                        Request Key
+                    </Button>
+                </Card>
+            </div>
+
+            {/* LLM API Configuration */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">LLM API Configuration</Label>
                     <Badge variant="outline" className="font-mono text-xs">
                         Required
                     </Badge>

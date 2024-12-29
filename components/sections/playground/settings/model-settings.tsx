@@ -15,12 +15,12 @@ interface ModelSettingsProps {
 export function ModelSettings({ modelConfig, onModelConfigChange }: ModelSettingsProps) {
     return (
         <Tabs defaultValue="model" className="w-full">
-            <TabsList className="w-full grid grid-cols-5 h-12 px-3 bg-muted/50">
+            <TabsList className="w-full grid grid-cols-4 h-12 px-3 bg-muted/50">
                 <TooltipProvider>
                     {[
                         { value: "model", icon: Cpu, title: "Model", description: "Configure model settings" },
                         { value: "advanced", icon: Settings2, title: "Advanced", description: "Fine-tune advanced options" },
-                        { value: "automate", icon: Clock, title: "Automate", description: "Set up automation rules" },
+                        /* { value: "automate", icon: Clock, title: "Automate", description: "Set up automation rules" }, */
                         { value: "settings", icon: Settings, title: "Settings", description: "Manage LLM settings" },
                         { value: "presets", icon: Bookmark, title: "Presets", description: "Manage saved configurations" },
                     ].map(({ value, icon: Icon, title, description }) => (

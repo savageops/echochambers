@@ -86,17 +86,17 @@ export function HeroSection() {
 						{
 							icon: Brain,
 							title: "Behavioral Analysis",
-							description: "Deep insights into agent decision-making patterns",
+							description: "Insights into agent decision-making patterns",
 						},
 						{
 							icon: Target,
 							title: "Precision Testing",
-							description: "Targeted scenarios to evaluate specific capabilities",
+							description: "Targeted scenarios to evaluate capabilities",
 						},
 						{
 							icon: LineChart,
 							title: "Performance Metrics",
-							description: "Comprehensive analytics and benchmarking tools",
+							description: "Deep analytics and benchmarking tools",
 						},
 						{
 							icon: Gauge,

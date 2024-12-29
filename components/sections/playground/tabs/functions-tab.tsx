@@ -1,112 +1,279 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { TabsContent } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { Plus, X } from "lucide-react";
-import { Function } from "../types";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
+import { useState } from "react";
+import { Twitter, Globe, Heart, MessageCircle, Search, TrendingUp, BarChart2, Repeat, Zap, Bot, Share2, Mail, AlertTriangle, Cpu, Database, LineChart, ChevronDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { STORAGE_KEYS } from "@/lib/constants";
+
+interface Function {
+    name: string;
+    description: string;
+    enabled: boolean;
+    category: string;
+    icon: React.ComponentType<{ className?: string }>;
+    beta?: boolean;
+}
+
+const predefinedFunctions: Function[] = [
+    // Twitter Functions
+    {
+        name: "twitter_like",
+        description: "Like tweets and interact with Twitter content",
+        enabled: false,
+        category: "Social",
+        icon: Heart,
+    },
+    {
+        name: "twitter_post",
+        description: "Create and post new tweets to your Twitter account",
+        enabled: false,
+        category: "Social",
+        icon: Twitter,
+    },
+    {
+        name: "twitter_quote",
+        description: "Quote tweets and share their content",
+        enabled: false,
+        category: "Social",
+        icon: Twitter,
+    },
+    {
+        name: "twitter_reply",
+        description: "Reply to existing tweets on Twitter",
+        enabled: false,
+        category: "Social",
+        icon: MessageCircle,
+    },
+    {
+        name: "twitter_scrape",
+        description: "Search and collect tweets based on keywords, hashtags, or users",
+        enabled: false,
+        category: "Social",
+        icon: Search,
+    },
+
+    // Trading Functions
+    {
+        name: "trade_spot",
+        description: "Execute spot trades across multiple exchanges",
+        enabled: false,
+        category: "Trading",
+        icon: TrendingUp,
+    },
+    {
+        name: "trade_futures",
+        description: "Trade perpetual futures with leverage",
+        enabled: false,
+        category: "Trading",
+        icon: LineChart,
+        beta: true,
+    },
+    {
+        name: "trade_grid",
+        description: "Set up automated grid trading strategies",
+        enabled: false,
+        category: "Trading",
+        icon: BarChart2,
+    },
+    {
+        name: "trade_copy",
+        description: "Copy trades from successful traders automatically",
+        enabled: false,
+        category: "Trading",
+        icon: Repeat,
+        beta: true,
+    },
+    {
+        name: "trade_correlations",
+        description: "Find correlated assets and arbitrage opportunities",
+        enabled: false,
+        category: "Trading",
+        icon: Share2,
+    },
+
+    // Market Analysis
+    {
+        name: "market_sentiment",
+        description: "Analyze market sentiment from social media and news",
+        enabled: false,
+        category: "Analysis",
+        icon: Bot,
+    },
+
+    // Automation
+    {
+        name: "auto_scheduler",
+        description: "Schedule and automate recurring tasks and workflows",
+        enabled: false,
+        category: "Automation",
+        icon: Repeat,
+    },
+    {
+        name: "auto_monitor",
+        description: "Monitor websites, APIs, and services for changes or availability",
+        enabled: false,
+        category: "Automation",
+        icon: Mail,
+    },
+    {
+        name: "auto_sync",
+        description: "Sync data between different platforms and services",
+        enabled: false,
+        category: "Automation",
+        icon: Cpu,
+        beta: true,
+    },
+    {
+        name: "auto_backup",
+        description: "Automated backups and archiving of important data through cloud services",
+        enabled: false,
+        category: "Automation",
+        icon: Database,
+    },
+    {
+        name: "auto_reports",
+        description: "Generate and distribute automated reports and analytics",
+        enabled: false,
+        category: "Automation",
+        icon: BarChart2,
+        beta: true,
+    },
+
+    // Web Functions
+    {
+        name: "web_scrape",
+        description: "Extract structured data from any website automatically",
+        enabled: false,
+        category: "Web",
+        icon: Globe,
+    },
+    {
+        name: "web_browse",
+        description: "Navigate and interact with web pages programmatically",
+        enabled: false,
+        category: "Web",
+        icon: Globe,
+    },
+    {
+        name: "web_search",
+        description: "Search for information and resources on the web",
+        enabled: false,
+        category: "Web",
+        icon: Search,
+    },
+];
 
 interface FunctionsTabProps {
-    functions?: Function[];
     onFunctionsChange?: (functions: Function[]) => void;
 }
 
-const defaultFunction: Function = {
-    name: "",
-    description: "",
-    parameters: "",
-};
+export function FunctionsTab({ onFunctionsChange }: FunctionsTabProps) {
+    const [savedEnabledFunctions, setSavedEnabledFunctions] = useLocalStorage<Array<{ name: string; description: string }>>(
+        STORAGE_KEYS.FUNCTION_CONFIG, 
+        []
+    );
+    const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
 
-export function FunctionsTab({ 
-    functions: externalFunctions = [], 
-    onFunctionsChange 
-}: FunctionsTabProps) {
-    const [functions, setFunctions] = useLocalStorage("echochambers_functions", externalFunctions);
+    // Initialize functions with saved enabled state
+    const [functions, setFunctions] = useState(() => 
+        predefinedFunctions.map(func => ({
+            ...func,
+            enabled: savedEnabledFunctions.some(saved => saved.name === func.name)
+        }))
+    );
 
-    const handleFunctionChange = (index: number, updates: Partial<Function>) => {
+    const handleToggleFunction = (index: number) => {
         const newFunctions = [...functions];
-        newFunctions[index] = { 
-            ...defaultFunction,
-            ...newFunctions[index], 
-            ...updates 
+        newFunctions[index] = {
+            ...newFunctions[index],
+            enabled: !newFunctions[index].enabled,
         };
         setFunctions(newFunctions);
+        
+        // Save name and description of enabled functions to local storage
+        const enabledFunctions = newFunctions
+            .filter(func => func.enabled)
+            .map(func => ({
+                name: func.name,
+                description: func.description
+            }));
+        setSavedEnabledFunctions(enabledFunctions);
+        
         onFunctionsChange?.(newFunctions);
     };
 
-    const handleAddFunction = () => {
-        const newFunctions = [
-            ...functions,
-            {
-                ...defaultFunction,
-                name: `Function ${functions.length + 1}`,
-            },
-        ];
-        setFunctions(newFunctions);
-        onFunctionsChange?.(newFunctions);
+    const toggleCategory = (category: string) => {
+        setCollapsedCategories((prev) => ({
+            ...prev,
+            [category]: !prev[category],
+        }));
     };
 
-    const handleRemoveFunction = (index: number) => {
-        const newFunctions = functions.filter((_, i) => i !== index);
-        setFunctions(newFunctions);
-        onFunctionsChange?.(newFunctions);
-    };
+    // Group functions by category
+    const groupedFunctions = functions.reduce((acc, func) => {
+        if (!acc[func.category]) {
+            acc[func.category] = [];
+        }
+        acc[func.category].push(func);
+        return acc;
+    }, {} as Record<string, Function[]>);
 
     return (
         <TabsContent value="functions" className="mt-0 h-[400px]">
-            <div className="h-full space-y-4">
-                <ScrollArea className="h-[87%] rounded-md px-3">
-                    <div className="space-y-4">
-                        {functions.map((func, index) => (
-                            <div key={index} className="space-y-2 p-4 rounded-lg border bg-background/50">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex-1">
-                                        <Input
-                                            value={func.name || ""}
-                                            onChange={(e) => handleFunctionChange(index, { name: e.target.value })}
-                                            placeholder="Function Name"
-                                            className="max-w-[200px]"
-                                        />
-                                    </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => handleRemoveFunction(index)}
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </Button>
+            <ScrollArea className="h-full px-1">
+                <div className="space-y-6 p-2">
+                    {Object.entries(groupedFunctions).map(([category, categoryFunctions]) => (
+                        <div key={category} className="space-y-4">
+                            <Button variant="ghost" className="w-full flex items-center justify-between p-0 h-auto hover:bg-transparent" onClick={() => toggleCategory(category)}>
+                                <div className="flex items-center space-x-2">
+                                    <h3 className="text-lg font-semibold">{category}</h3>
+                                    <Badge variant="secondary">
+                                        {categoryFunctions.filter((f) => f.enabled).length}/{categoryFunctions.length}
+                                    </Badge>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label className="text-sm">Description</Label>
-                                    <Textarea
-                                        value={func.description || ""}
-                                        onChange={(e) => handleFunctionChange(index, { description: e.target.value })}
-                                        placeholder="Describe what this function does..."
-                                        className="min-h-[60px]"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-sm">Parameters</Label>
-                                    <Textarea
-                                        value={func.parameters || ""}
-                                        onChange={(e) => handleFunctionChange(index, { parameters: e.target.value })}
-                                        placeholder="Define function parameters in JSON format..."
-                                        className="min-h-[100px] font-mono text-sm"
-                                    />
-                                </div>
+                                <ChevronDown className={`h-5 w-5 transition-transform mr-1 ${collapsedCategories[category] ? "-rotate-90" : ""}`} />
+                            </Button>
+                            <div className={`grid gap-3 transition-all ${collapsedCategories[category] ? "hidden" : ""}`}>
+                                {categoryFunctions.map((func, index) => {
+                                    const globalIndex = functions.findIndex((f) => f.name === func.name);
+                                    const Icon = func.icon;
+                                    return (
+                                        <Card key={func.name} className={`transition-colors bg-background/50 ${func.enabled ? "border-primary" : ""}`}>
+                                            <CardContent className="p-4">
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex items-start space-x-3">
+                                                        <div className="mt-1">
+                                                            <Icon className={`h-5 w-5 ${func.enabled ? "text-primary" : "text-muted-foreground"}`} />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <h4 className="text-sm font-medium leading-none">{func.name}</h4>
+                                                                {func.beta && (
+                                                                    <Badge variant="secondary" className="text-xs">
+                                                                        BETA
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-sm text-muted-foreground">{func.description}</p>
+                                                        </div>
+                                                    </div>
+                                                    <Switch checked={func.enabled} onCheckedChange={() => handleToggleFunction(globalIndex)} className="ml-4" />
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                })}
                             </div>
-                        ))}
-                    </div>
-                </ScrollArea>
-                <Button variant="outline" onClick={handleAddFunction} className="w-full">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Function
-                </Button>
-            </div>
+                        </div>
+                    ))}
+                </div>
+            </ScrollArea>
         </TabsContent>
     );
 }

@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { TabsContent } from "@/components/ui/tabs";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Badge } from "@/components/ui/badge";
+import { STORAGE_KEYS } from "@/lib/constants";
 
 interface TemplateTabProps {
     promptTemplate?: string;
@@ -12,7 +13,7 @@ interface TemplateTabProps {
 }
 
 export function TemplateTab({ promptTemplate: externalTemplate = "", onPromptTemplateChange }: TemplateTabProps) {
-    const [template, setTemplate] = useLocalStorage("echochambers_prompt_template", externalTemplate);
+    const [template, setTemplate] = useLocalStorage(STORAGE_KEYS.TEMPLATE_CONFIG, externalTemplate);
 
     const handleChange = (value: string) => {
         setTemplate(value);

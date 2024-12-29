@@ -149,95 +149,61 @@ interface TestResult {
 }`;
 
 export default function CodeBlock() {
-  const [copied, setCopied] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(null);
+    const [copied, setCopied] = useState<string | null>(null);
+    const [expanded, setExpanded] = useState<string | null>(null);
 
-  const onCopy = (type: string) => {
-    setCopied(type);
-    if (type === "typescript") navigator.clipboard.writeText(typescriptCode);
-    if (type === "python") navigator.clipboard.writeText(pythonCode);
-    if (type === "rust") navigator.clipboard.writeText(rustCode);
-    if (type === "types") navigator.clipboard.writeText(types);
-    setTimeout(() => setCopied(null), 2000);
-  };
+    const onCopy = (type: string) => {
+        setCopied(type);
+        if (type === "typescript") navigator.clipboard.writeText(typescriptCode);
+        if (type === "python") navigator.clipboard.writeText(pythonCode);
+        if (type === "rust") navigator.clipboard.writeText(rustCode);
+        if (type === "types") navigator.clipboard.writeText(types);
+        setTimeout(() => setCopied(null), 2000);
+    };
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="group relative overflow-hidden rounded-xl border bg-gradient-to-b from-muted/50 to-muted/0 backdrop-blur-sm shadow-lg"
-    >
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
-      <div className="relative">
-        <Tabs defaultValue="typescript" className="relative">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-border/40">
-            <TabsList className="h-9 bg-transparent p-0">
-              {[
-                ["typescript", "TypeScript"],
-                ["python", "Python"],
-                ["rust", "Rust"],
-                ["types", "Types"],
-              ].map(([value, label]) => (
-                <TabsTrigger
-                  key={value}
-                  value={value}
-                  className={cn(
-                    "relative h-9 rounded-none border-b-2 border-b-transparent px-4 pb-3 pt-2 font-medium text-muted-foreground transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                  )}
-                >
-                  {label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                className="h-8 w-8 p-0"
-                onClick={() => setExpanded(expanded ? null : "code")}
-              >
-                {expanded ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronUp className="h-4 w-4" />
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                className="h-8 w-8 p-0"
-                onClick={() => onCopy(expanded || "typescript")}
-              >
-                {copied ? (
-                  <CheckCircle2 className="h-4 w-4" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
+    return (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="group relative overflow-hidden rounded-xl border bg-gradient-to-b from-muted/50 to-muted/0 backdrop-blur-sm shadow-lg">
+            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
+            <div className="relative">
+                <Tabs defaultValue="typescript" className="relative">
+                    <div className="flex items-center justify-between pr-4 py-2 border-b bg-background/20">
+                        <TabsList className="h-8 bg-transparent p-0">
+                            {[
+                                ["typescript", "TypeScript"],
+                                ["python", "Python"],
+                                ["rust", "Rust"],
+                                ["types", "Types"],
+                            ].map(([value, label]) => (
+                                <TabsTrigger key={value} value={value} className={cn("relative rounded-xl rounded-b-none p-0 h-12 border-b-1 border-b-transparent px-3 pb-3 pt-2 font-medium text-muted-foreground transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none")}>
+                                    {label}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                        <div className="flex items-center gap-2">
+                            <Button variant="ghost" className="h-8 w-8 p-0" onClick={() => setExpanded(expanded ? null : "code")}>
+                                {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                            </Button>
+                            <Button variant="ghost" className="h-8 w-8 p-0" onClick={() => onCopy(expanded || "typescript")}>
+                                {copied ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                            </Button>
+                        </div>
+                    </div>
+                    {["typescript", "python", "rust", "types"].map((type) => (
+                        <TabsContent key={type} value={type} className={cn("border-none p-0 text-sm", expanded ? "max-h-[800px]" : "max-h-[400px]")}>
+                            <div className="relative">
+                                <pre className="overflow-x-auto p-4 text-left">
+                                    <code className="relative text-muted-foreground">
+                                        {type === "typescript" && typescriptCode}
+                                        {type === "python" && pythonCode}
+                                        {type === "rust" && rustCode}
+                                        {type === "types" && types}
+                                    </code>
+                                </pre>
+                            </div>
+                        </TabsContent>
+                    ))}
+                </Tabs>
             </div>
-          </div>
-          {["typescript", "python", "rust", "types"].map((type) => (
-            <TabsContent
-              key={type}
-              value={type}
-              className={cn(
-                "border-none p-0 text-sm",
-                expanded ? "max-h-[800px]" : "max-h-[400px]"
-              )}
-            >
-              <div className="relative">
-                <pre className="overflow-x-auto p-4 text-left">
-                  <code className="relative text-muted-foreground">
-                    {type === "typescript" && typescriptCode}
-                    {type === "python" && pythonCode}
-                    {type === "rust" && rustCode}
-                    {type === "types" && types}
-                  </code>
-                </pre>
-              </div>
-            </TabsContent>
-          ))}
-        </Tabs>
-      </div>
-    </motion.div>
-  );
+        </motion.div>
+    );
 }
