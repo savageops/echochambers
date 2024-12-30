@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { ChatMessage } from "@/server/types";
+import ReactMarkdown from "react-markdown";
+import { ComponentPropsWithoutRef } from "react";
 
 interface ChatWindowProps {
     roomId: string;
@@ -83,8 +85,56 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
                             </div>
                             <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-b from-muted/50 to-muted/0 backdrop-blur-sm transition-colors hover:bg-muted/50">
                                 <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
-                                <div className="relative p-3">
-                                    <p className="text-sm whitespace-pre-wrap break-all">{message.content}</p>
+                                <div className="relative p-3 overflow-hidden">
+                                    <ReactMarkdown
+                                        className="prose prose-xs dark:prose-invert max-w-none break-words text-sm"
+                                        components={{
+                                            p({ children }) {
+                                                return <p className="mb-2 last:mb-0 text-sm whitespace-pre-wrap break-words">{children}</p>;
+                                            },
+                                            code({ className, children, ...props }: ComponentPropsWithoutRef<"code">) {
+                                                const match = /language-(\w+)/.exec(className || "");
+                                                const isInline = !match;
+                                                if (isInline) {
+                                                    return (
+                                                        <code className="bg-muted/50 rounded px-1 text-xs whitespace-pre-wrap break-all" {...props}>
+                                                            {children}
+                                                        </code>
+                                                    );
+                                                }
+                                                return (
+                                                    <div className="relative my-3">
+                                                        <code className="block bg-muted/50 p-2 rounded-lg text-xs whitespace-pre-wrap break-all overflow-x-auto" {...props}>
+                                                            {children}
+                                                        </code>
+                                                    </div>
+                                                );
+                                            },
+                                            ul({ children }) {
+                                                return <ul className="list-disc pl-4 mb-2 space-y-1 text-sm break-words">{children}</ul>;
+                                            },
+                                            ol({ children }) {
+                                                return <ol className="list-decimal pl-4 mb-2 space-y-1 text-sm break-words">{children}</ol>;
+                                            },
+                                            li({ children }) {
+                                                return <li className="mb-1 text-sm break-words">{children}</li>;
+                                            },
+                                            h1({ children }) {
+                                                return <h1 className="text-lg font-semibold mb-2 mt-3 break-words">{children}</h1>;
+                                            },
+                                            h2({ children }) {
+                                                return <h2 className="text-base font-semibold mb-2 mt-3 break-words">{children}</h2>;
+                                            },
+                                            h3({ children }) {
+                                                return <h3 className="text-sm font-semibold mb-2 mt-3 break-words">{children}</h3>;
+                                            },
+                                            blockquote({ children }) {
+                                                return <blockquote className="border-l-2 border-muted pl-4 italic my-2 break-words">{children}</blockquote>;
+                                            }
+                                        }}
+                                    >
+                                        {message.content}
+                                    </ReactMarkdown>
                                 </div>
                             </div>
                         </div>
@@ -116,8 +166,56 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
                         </div>
                         <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-b from-muted/50 to-muted/0 backdrop-blur-sm transition-colors hover:bg-muted/50">
                             <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
-                            <div className="relative p-3">
-                                <p className="text-sm whitespace-pre-wrap break-all">{message.content}</p>
+                            <div className="relative p-3 overflow-hidden">
+                                <ReactMarkdown
+                                    className="prose prose-xs dark:prose-invert max-w-none break-words text-sm"
+                                    components={{
+                                        p({ children }) {
+                                            return <p className="mb-2 last:mb-0 text-sm whitespace-pre-wrap break-words">{children}</p>;
+                                        },
+                                        code({ className, children, ...props }: ComponentPropsWithoutRef<"code">) {
+                                            const match = /language-(\w+)/.exec(className || "");
+                                            const isInline = !match;
+                                            if (isInline) {
+                                                return (
+                                                    <code className="bg-muted/50 rounded px-1 text-xs whitespace-pre-wrap break-all" {...props}>
+                                                        {children}
+                                                    </code>
+                                                );
+                                            }
+                                            return (
+                                                <div className="relative my-3">
+                                                    <code className="block bg-muted/50 p-2 rounded-lg text-xs whitespace-pre-wrap break-all overflow-x-auto" {...props}>
+                                                        {children}
+                                                    </code>
+                                                </div>
+                                            );
+                                        },
+                                        ul({ children }) {
+                                            return <ul className="list-disc pl-4 mb-2 space-y-1 text-sm break-words">{children}</ul>;
+                                        },
+                                        ol({ children }) {
+                                            return <ol className="list-decimal pl-4 mb-2 space-y-1 text-sm break-words">{children}</ol>;
+                                        },
+                                        li({ children }) {
+                                            return <li className="mb-1 text-sm break-words">{children}</li>;
+                                        },
+                                        h1({ children }) {
+                                            return <h1 className="text-lg font-semibold mb-2 mt-3 break-words">{children}</h1>;
+                                        },
+                                        h2({ children }) {
+                                            return <h2 className="text-base font-semibold mb-2 mt-3 break-words">{children}</h2>;
+                                        },
+                                        h3({ children }) {
+                                            return <h3 className="text-sm font-semibold mb-2 mt-3 break-words">{children}</h3>;
+                                        },
+                                        blockquote({ children }) {
+                                            return <blockquote className="border-l-2 border-muted pl-4 italic my-2 break-words">{children}</blockquote>;
+                                        }
+                                    }}
+                                >
+                                    {message.content}
+                                </ReactMarkdown>
                             </div>
                         </div>
                     </div>
