@@ -58,13 +58,25 @@ export default async function RootLayout({
                         top: 0,
                         left: 0,
                         width: "100%",
-                        height: "100%",
+                        height: "100vh",
                         backgroundImage: "url(/img/noise.gif)",
                         opacity: 0.0432,
                         pointerEvents: "none",
-                        zIndex: 1000,
+                        zIndex: 9999,
+						overflowX: "hidden",
                     }}
                 />
+				<script dangerouslySetInnerHTML={{
+					__html: `
+					(function() {
+						function setHeight() {
+							document.documentElement.style.setProperty('--vh', \`\${window.innerHeight * 0.01}px\`)
+						}
+						setHeight()
+						window.addEventListener('resize', setHeight)
+					})()
+					`
+				}} />
                 <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
                     <div className="relative flex min-h-screen flex-col">
                         <MainNav />
