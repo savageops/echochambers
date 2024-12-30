@@ -1,4 +1,4 @@
-import { Message, ModelConfig, StepPrompt } from "@/components/sections/playground/types";
+import { Message, ModelConfig } from "@/components/sections/playground/types";
 import { STORAGE_KEYS } from "./constants";
 
 interface ChatResponse {
@@ -9,6 +9,24 @@ interface ChatResponse {
 interface ProcessingStatus {
     onStepStart?: (stepNumber: number, stepName: string) => void;
     onStepComplete?: (stepNumber: number, stepName: string) => void;
+}
+
+interface StepParams {
+    model?: string;
+    temperature?: number;
+    topP?: number;
+    frequencyPenalty?: number;
+    presencePenalty?: number;
+    maxTokens?: number;
+    stopSequences?: string[];
+}
+
+interface StepPrompt {
+    name: string;
+    prompt: string;
+    checkpoint: boolean;
+    customParams: boolean;
+    params?: StepParams;
 }
 
 async function makeApiRequest(messages: { role: string; content: string }[], modelConfig: any, advancedConfig: any): Promise<ChatResponse> {
@@ -167,7 +185,26 @@ async function processSteps(initialUserMessage: string, initialResponse: ChatRes
             const stepMessages = buildMessages(step.prompt, currentResponse.content);
 
             // Make API request for this step
-            currentResponse = await makeApiRequest(stepMessages, modelConfig, advancedConfig);
+            if (step.customParams && step.params) {
+                // Use step-specific parameters
+                const stepConfig = {
+                    ...modelConfig,
+                    model: step.params.model || modelConfig.model,
+                };
+                const stepAdvancedConfig = {
+                    ...advancedConfig,
+                    temperature: step.params.temperature,
+                    maxTokens: step.params.maxTokens,
+                    topP: step.params.topP,
+                    frequencyPenalty: step.params.frequencyPenalty,
+                    presencePenalty: step.params.presencePenalty,
+                    stopSequences: step.params.stopSequences,
+                };
+                currentResponse = await makeApiRequest(stepMessages, stepConfig, stepAdvancedConfig);
+            } else {
+                // Use global parameters
+                currentResponse = await makeApiRequest(stepMessages, modelConfig, advancedConfig);
+            }
 
             // Notify step complete
             status.onStepComplete?.(stepNumber, step.name);
