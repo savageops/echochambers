@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChatMessage } from "@/server/types";
 import ReactMarkdown from "react-markdown";
 import { ComponentPropsWithoutRef } from "react";
+import { Copy, Check } from "lucide-react";
 
 interface ChatWindowProps {
     roomId: string;
@@ -26,6 +27,17 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
     const [mounted, setMounted] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [pollInterval] = useState<number>(2000); // 2 seconds default polling
+    const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+    const copyToClipboard = async (code: string) => {
+        try {
+            await navigator.clipboard.writeText(code);
+            setCopiedCode(code);
+            setTimeout(() => setCopiedCode(null), 2000);
+        } catch (err) {
+            console.error("Failed to copy code:", err);
+        }
+    };
 
     useEffect(() => {
         setMounted(true);
@@ -95,16 +107,26 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
                                             code({ className, children, ...props }: ComponentPropsWithoutRef<"code">) {
                                                 const match = /language-(\w+)/.exec(className || "");
                                                 const isInline = !match;
+                                                const codeString = String(children).trim();
+
                                                 if (isInline) {
                                                     return (
-                                                        <code className="bg-muted/50 rounded px-1 text-xs whitespace-pre-wrap break-all" {...props}>
+                                                        <code className="bg-card/30 rounded px-1 text-xs whitespace-pre-wrap break-all" {...props}>
                                                             {children}
                                                         </code>
                                                     );
                                                 }
                                                 return (
                                                     <div className="relative my-3">
-                                                        <code className="block bg-muted/50 p-2 rounded-lg text-xs whitespace-pre-wrap break-all overflow-x-auto" {...props}>
+                                                        <div className="absolute right-1">
+                                                            <button onClick={() => copyToClipboard(codeString)} className="p-1.5 rounded-md bg-muted/10 hover:bg-muted transition-colors" title="Copy code">
+                                                                {copiedCode === codeString ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
+                                                            </button>
+                                                        </div>
+                                                        <div className="flex items-center justify-between px-3 py-1.5 border-b border-muted/20">
+                                                            <span className="text-xs text-muted-foreground">{match ? match[1] : "code"}</span>
+                                                        </div>
+                                                        <code className="block bg-card/30 p-3 rounded-lg text-xs whitespace-pre-wrap break-all overflow-x-auto" {...props}>
                                                             {children}
                                                         </code>
                                                     </div>
@@ -130,7 +152,7 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
                                             },
                                             blockquote({ children }) {
                                                 return <blockquote className="border-l-2 border-muted pl-4 italic my-2 break-words">{children}</blockquote>;
-                                            }
+                                            },
                                         }}
                                     >
                                         {message.content}
@@ -176,6 +198,8 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
                                         code({ className, children, ...props }: ComponentPropsWithoutRef<"code">) {
                                             const match = /language-(\w+)/.exec(className || "");
                                             const isInline = !match;
+                                            const codeString = String(children).trim();
+
                                             if (isInline) {
                                                 return (
                                                     <code className="bg-card/30 rounded px-1 text-xs whitespace-pre-wrap break-all" {...props}>
@@ -185,6 +209,14 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
                                             }
                                             return (
                                                 <div className="relative my-3">
+                                                    <div className="absolute right-1">
+                                                        <button onClick={() => copyToClipboard(codeString)} className="p-1.5 rounded-md bg-muted/10 hover:bg-muted transition-colors" title="Copy code">
+                                                            {copiedCode === codeString ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
+                                                        </button>
+                                                    </div>
+                                                    <div className="flex items-center justify-between px-3 py-1.5 border-b border-muted/20">
+                                                        <span className="text-xs text-muted-foreground">{match ? match[1] : "code"}</span>
+                                                    </div>
                                                     <code className="block bg-card/30 p-3 rounded-lg text-xs whitespace-pre-wrap break-all overflow-x-auto" {...props}>
                                                         {children}
                                                     </code>
@@ -211,7 +243,7 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
                                         },
                                         blockquote({ children }) {
                                             return <blockquote className="border-l-2 border-muted pl-4 italic my-2 break-words">{children}</blockquote>;
-                                        }
+                                        },
                                     }}
                                 >
                                     {message.content}
