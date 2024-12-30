@@ -219,7 +219,7 @@ export function AdvancedTab({ modelConfig, onModelConfigChange }: AdvancedTabPro
                 </Card>
             </div>
 
-            <Separator className="bg-border/50" />
+            {/* <Separator className="bg-border/50" />
 
             <Card className="p-4 space-y-4">
                 <div className="flex items-center justify-between">
@@ -229,7 +229,7 @@ export function AdvancedTab({ modelConfig, onModelConfigChange }: AdvancedTabPro
                     </div>
                     <Switch checked={modelConfig.stream} onCheckedChange={(checked) => onModelConfigChange({ ...modelConfig, stream: checked })} />
                 </div>
-            </Card>
+            </Card> */}
         </div>
     );
 }
