@@ -2,6 +2,7 @@
 
 import { Loader } from "@/components/loader";
 import { HeroSection } from "@/components/sections/landing/v1/hero";
+import { UpdatesPill } from "@/components/updates/updates-pill";
 import { useEffect, useState } from "react";
 
 export default function LandingPage() {
@@ -30,7 +31,10 @@ export default function LandingPage() {
 
     return (
         <div className="flex-1">
-            <HeroSection />
+            <div className="relative">
+                <HeroSection />
+                <UpdatesPill />
+            </div>
         </div>
     );
 }

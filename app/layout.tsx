@@ -63,20 +63,20 @@ export default async function RootLayout({
                         opacity: 0.0432,
                         pointerEvents: "none",
                         zIndex: 9999,
-						overflowX: "hidden",
+                        overflowX: "hidden",
                     }}
                 />
-				<script dangerouslySetInnerHTML={{
-					__html: `
-					(function() {
-						function setHeight() {
-							document.documentElement.style.setProperty('--vh', \`\${window.innerHeight * 0.01}px\`)
-						}
-						setHeight()
-						window.addEventListener('resize', setHeight)
-					})()
-					`
-				}} />
+                <script dangerouslySetInnerHTML={{
+                    __html: `
+                    (function() {
+                        function setHeight() {
+                            document.documentElement.style.setProperty('--vh', \`\${window.innerHeight * 0.01}px\`)
+                        }
+                        setHeight()
+                        window.addEventListener('resize', setHeight)
+                    })()
+                    `
+                }} />
                 <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
                     <div className="relative flex min-h-screen flex-col">
                         <MainNav />

@@ -7,19 +7,20 @@ import { ThemeToggle } from "@/components/ThemeToggle"
 import { cn } from "@/lib/utils"
 import { Home, BookOpen, MessageSquare, Menu, Sparkles } from "lucide-react"
 import { SiGithub } from "@icons-pack/react-simple-icons"
-import { useState, useTransition, useEffect } from "react"
+import { useState, useTransition } from "react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
+import { MobileChangelogDialog } from "@/components/updates/mobile-changelog-dialog"
+import { ChangelogDialog } from "@/components/updates/changelog-dialog"
+import { UpdatesButton } from "@/components/updates/updates-button"
+import { useChangelog } from "@/lib/stores/use-changelog"
+import { DialogTrigger } from "@/components/ui/dialog"
 
 export function MainNav() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [clickedHref, setClickedHref] = useState<string | null>(null)
-
-  useEffect(() => {
-    // Reset loading state when navigation completes (pathname changes)
-    setClickedHref(null)
-  }, [pathname])
+  const { hasUnread } = useChangelog()
 
   const navItems = [
     {
@@ -89,13 +90,14 @@ export function MainNav() {
         </div>
 
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" className="gap-2 hidden md:flex" asChild>
-            <Link href="https://github.com/dGNON/echochambers">
-              <SiGithub className="h-4 w-4" />
-              <span>GitHub</span>
+          <div className="flex items-center gap-2">
+            <Link href="https://github.com/gnon/echochambers" target="_blank">
+              <Button variant="ghost" size="icon">
+                <SiGithub className="h-5 w-5" />
+              </Button>
             </Link>
-          </Button>
-          <ThemeToggle />
+            <ThemeToggle />
+          </div>
           
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild className="md:hidden">
@@ -103,44 +105,38 @@ export function MainNav() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-              <SheetTitle>Navigation Menu</SheetTitle>
-              <div className="flex flex-col gap-4 py-4">
+            <SheetContent side="right" className="w-72">
+              <SheetTitle className="mb-4">Menu</SheetTitle>
+              <div className="flex flex-col gap-2">
                 {navItems.map((item) => (
                   <Button
                     key={item.href}
-                    variant={item.active ? "secondary" : "ghost"}
+                    variant="ghost"
                     className={cn(
-                      "justify-start gap-2 w-full",
+                      "justify-start gap-2",
                       item.active && "bg-muted"
                     )}
-                    asChild
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <Link 
-                      href={item.href}
-                      onClick={() => {
-                        setClickedHref(item.href)
-                        startTransition(() => {})
+                    onClick={() => {
+                      setClickedHref(item.href)
+                      startTransition(() => {
                         setIsOpen(false)
-                      }}
-                      className="flex items-center gap-2"
-                    >
-                      {isPending && item.href === clickedHref ? (
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-foreground" />
-                      ) : (
-                        <item.icon className="h-4 w-4" />
-                      )}
+                      })
+                    }}
+                    asChild
+                  >
+                    <Link href={item.href}>
+                      <item.icon className="h-4 w-4" />
                       {item.label}
                     </Link>
                   </Button>
                 ))}
-                <Button variant="ghost" className="justify-start gap-2" asChild onClick={() => setIsOpen(false)}>
-                  <Link href="https://github.com/dGNON/echochambers">
+                <Link href="https://github.com/gnon/echochambers">
+                  <Button variant="ghost" className="justify-start gap-2 w-full">
                     <SiGithub className="h-4 w-4" />
                     GitHub
-                  </Link>
-                </Button>
+                  </Button>
+                </Link>
+                <MobileChangelogDialog />
               </div>
             </SheetContent>
           </Sheet>
