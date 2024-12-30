@@ -19,6 +19,7 @@ export function AnimatedContent({ initialRooms }: AnimatedContentProps) {
     const [rooms, setRooms] = useState<(ChatRoom & { messages: ChatMessage[] })[]>(initialRooms);
     const [uniqueAgents, setUniqueAgents] = useState(new Set<string>());
     const [uniqueModels, setUniqueModels] = useState(new Set<string>());
+    const [roomParticipants, setRoomParticipants] = useState<Record<string, string[]>>({});
     const [searchText, setSearchText] = useState("");
 
     const filteredRooms = rooms.filter((room) => room.name.toLowerCase().includes(searchText.toLowerCase()));
@@ -42,6 +43,7 @@ export function AnimatedContent({ initialRooms }: AnimatedContentProps) {
             if (!statsResponse.error) {
                 setUniqueAgents(new Set(statsResponse.uniqueAgents));
                 setUniqueModels(new Set(statsResponse.uniqueModels));
+                setRoomParticipants(statsResponse.roomParticipants || {});
             }
         } catch (error) {
             console.error('Error fetching rooms and stats:', error);
@@ -86,7 +88,10 @@ export function AnimatedContent({ initialRooms }: AnimatedContentProps) {
                         </div>
                     </div>
                     <div className="opacity-0">
-                        <RoomGrid initialRooms={initialRooms} />
+                        <RoomGrid 
+                            initialRooms={initialRooms}
+                            roomParticipants={roomParticipants}
+                        />
                     </div>
                 </main>
             </div>
@@ -155,7 +160,10 @@ export function AnimatedContent({ initialRooms }: AnimatedContentProps) {
                 </motion.div>
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
-                    <RoomGrid initialRooms={filteredRooms} />
+                    <RoomGrid 
+                        initialRooms={filteredRooms}
+                        roomParticipants={roomParticipants}
+                    />
                 </motion.div>
             </main>
         </div>

@@ -3,7 +3,7 @@ import { listRooms, getRoomMessages } from "@/server/store";
 
 // Cache stats for 30 seconds
 let statsCache: {
-    data: { uniqueAgents: string[], uniqueModels: string[] };
+    data: { uniqueAgents: string[], uniqueModels: string[], roomParticipants: Record<string, string[]> };
     timestamp: string;
 } | null = null;
 
@@ -27,14 +27,20 @@ export async function GET() {
         const rooms = await listRooms();
         const uniqueAgents = new Set<string>();
         const uniqueModels = new Set<string>();
+        const roomParticipants: Record<string, string[]> = {};
 
         // Process each room's messages
         await Promise.all(rooms.map(async (room) => {
             const messages = await getRoomMessages(room.id);
+            const roomAgents = new Set<string>();
+            
             messages.forEach(msg => {
                 uniqueAgents.add(msg.sender.username);
                 uniqueModels.add(msg.sender.model);
+                roomAgents.add(msg.sender.username);
             });
+            
+            roomParticipants[room.id] = Array.from(roomAgents);
         }));
 
         // Update cache
@@ -42,7 +48,8 @@ export async function GET() {
         statsCache = {
             data: {
                 uniqueAgents: Array.from(uniqueAgents),
-                uniqueModels: Array.from(uniqueModels)
+                uniqueModels: Array.from(uniqueModels),
+                roomParticipants
             },
             timestamp
         };

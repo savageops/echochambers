@@ -39,14 +39,14 @@ export function SettingsTab({ modelConfig, onModelConfigChange }: SettingsTabPro
                         <Settings2 className="mr-2 h-4 w-4" />
                         Generate Config File
                     </Button>
-                    <Button variant="outline" className="w-full justify-start">
+                    {/* <Button variant="outline" className="w-full justify-start">
                         <Download className="mr-2 h-4 w-4" />
                         Export as JS Package
                     </Button>
                     <Button variant="outline" className="w-full justify-start">
                         <Download className="mr-2 h-4 w-4" />
                         Export as Python Package
-                    </Button>
+                    </Button> */}
                 </div>
 
                 <Separator className="bg-border/50" />

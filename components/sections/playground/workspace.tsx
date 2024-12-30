@@ -52,6 +52,7 @@ const initialState: WorkspaceState = {
         frequencyPenalty: 0.0,
         presencePenalty: 0.0,
         stopSequences: [],
+        ecapiKey: "",
         apiKey: "",
         baseUrl: "",
         responseFormat: "",
@@ -156,7 +157,7 @@ export function PlaygroundWorkspace() {
     const tabItems = [
         { value: "system", icon: MessageSquare, label: "System" },
         { value: "template", icon: Wand2, label: "Template" },
-        { value: "functions", icon: Wrench, label: "Functions" },
+        /* { value: "functions", icon: Wrench, label: "Functions" }, */ // Todo: Add Function
         { value: "agent", icon: Bot, label: "Agent" },
         { value: "steps", icon: GitBranch, label: "Steps" },
         { value: "fabricate", icon: MessageSquare, label: "Fabricate" },

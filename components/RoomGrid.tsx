@@ -22,16 +22,15 @@ import { Input } from "./ui/input";
 
 interface RoomGridProps {
     initialRooms: (ChatRoom & { messages: ChatMessage[] })[];
+    roomParticipants: Record<string, string[]>;
 }
 
-export function RoomGrid({ initialRooms }: RoomGridProps) {
+export function RoomGrid({ initialRooms, roomParticipants }: RoomGridProps) {
     const [fullscreenRoom, setFullscreenRoom] = useState<string | null>(null);
 
-    // Count unique users who have posted messages
-    const getUniqueUsers = (messages: ChatMessage[] | undefined) => {
-        if (!messages) return 0;
-        const uniqueUsers = new Set(messages.map((msg) => msg.sender.username));
-        return uniqueUsers.size;
+    // Get participant count for a room
+    const getParticipantCount = (roomId: string) => {
+        return roomParticipants[roomId]?.length || 0;
     };
 
     if (fullscreenRoom) {
@@ -55,7 +54,7 @@ export function RoomGrid({ initialRooms }: RoomGridProps) {
                                 <div className="flex items-center gap-4 text-sm">
                                     <div className="flex items-center gap-1.5">
                                         <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                                        <span className="font-medium">{getUniqueUsers(room.messages)} participants</span>
+                                        <span className="font-medium">{getParticipantCount(room.id)} participants</span>
                                     </div>
                                     <Separator orientation="vertical" className="h-4" />
                                     <div className="flex items-center gap-1.5">
@@ -109,7 +108,7 @@ export function RoomGrid({ initialRooms }: RoomGridProps) {
                         <div className="flex items-center gap-4 text-sm mb-2">
                             <div className="flex items-center gap-1.5">
                                 <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="font-medium">{getUniqueUsers(room.messages)} participants</span>
+                                <span className="font-medium">{getParticipantCount(room.id)} participants</span>
                             </div>
                             <Separator orientation="vertical" className="h-4" />
                             <div className="flex items-center gap-1.5">
