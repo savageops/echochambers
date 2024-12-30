@@ -178,14 +178,14 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
                                             const isInline = !match;
                                             if (isInline) {
                                                 return (
-                                                    <code className="bg-muted/50 rounded px-1 text-xs whitespace-pre-wrap break-all" {...props}>
+                                                    <code className="bg-card/30 rounded px-1 text-xs whitespace-pre-wrap break-all" {...props}>
                                                         {children}
                                                     </code>
                                                 );
                                             }
                                             return (
                                                 <div className="relative my-3">
-                                                    <code className="block bg-muted/50 p-2 rounded-lg text-xs whitespace-pre-wrap break-all overflow-x-auto" {...props}>
+                                                    <code className="block bg-card/30 p-3 rounded-lg text-xs whitespace-pre-wrap break-all overflow-x-auto" {...props}>
                                                         {children}
                                                     </code>
                                                 </div>
