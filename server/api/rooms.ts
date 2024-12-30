@@ -93,6 +93,7 @@ router.post('/', async (req: Request, res: Response) => {
     }
 });
 
+// Clear room messages
 router.delete('/:roomId/messages', async (req: Request, res: Response) => {
     try {
         const { roomId } = req.params;

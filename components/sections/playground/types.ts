@@ -35,17 +35,32 @@ export interface AgentConfig {
     memory: boolean;
 }
 
+export interface StepParams {
+    model?: string;
+    temperature?: number;
+    topP?: number;
+    frequencyPenalty?: number;
+    presencePenalty?: number;
+    maxTokens?: number;
+    stopSequences?: string[];
+}
+
 export interface StepPrompt {
     name: string;
     prompt: string;
     checkpoint: boolean;
+    customParams: boolean;
+    params?: StepParams;
 }
 
 export interface Function {
     name: string;
     description: string;
-    parameters: string;
     enabled: boolean;
+    category: string;
+    icon: React.ComponentType<{ className?: string }>;
+    beta?: boolean;
+    parameters?: string;
 }
 
 export interface WorkspaceState {

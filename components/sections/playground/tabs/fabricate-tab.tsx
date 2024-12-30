@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Plus, User2, Bot, Trash2, MoveUp, MoveDown, Copy } from "lucide-react";
 import { STORAGE_KEYS } from "@/lib/constants";
+import { DEFAULT_FABRICATIONS } from "@/lib/config-utils";
 
 interface Message {
     role: "user" | "assistant";
@@ -31,8 +32,9 @@ export function FabricateTab({ onConversationChange }: FabricateTabProps) {
                     console.error("Failed to parse saved fabrications:", e);
                 }
             }
+            return DEFAULT_FABRICATIONS;
         }
-        return [];
+        return DEFAULT_FABRICATIONS;
     });
     const [currentContent, setCurrentContent] = useState("");
 

@@ -13,49 +13,18 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 import { STORAGE_KEYS } from "@/lib/constants";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-
-interface StepParams {
-    model?: string;
-    temperature?: number;
-    topP?: number;
-    frequencyPenalty?: number;
-    presencePenalty?: number;
-    maxTokens?: number;
-    stopSequences?: string[];
-}
-
-interface StepPrompt {
-    name: string;
-    prompt: string;
-    checkpoint: boolean;
-    customParams: boolean;
-    params?: StepParams;
-}
+import { DEFAULT_STEPS, DEFAULT_STEP, DEFAULT_STEP_PARAMS } from "@/lib/config-utils";
+import { StepPrompt, StepParams } from "../types";
 
 interface StepsTabProps {
     stepPrompts?: StepPrompt[];
     onStepPromptsChange?: (steps: StepPrompt[]) => void;
 }
 
-const defaultStep: StepPrompt = {
-    name: "",
-    prompt: "",
-    checkpoint: false,
-    customParams: false,
-};
+const defaultParams: StepParams = DEFAULT_STEP_PARAMS;
 
-const defaultParams: StepParams = {
-    model: "",
-    temperature: 0.7,
-    topP: 0.9,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    maxTokens: 2048,
-    stopSequences: [],
-};
-
-export function StepsTab({ stepPrompts: externalSteps = [], onStepPromptsChange }: StepsTabProps) {
-    const [steps, setSteps] = useLocalStorage(STORAGE_KEYS.STEPS_CONFIG, externalSteps);
+export function StepsTab({ stepPrompts: externalSteps = DEFAULT_STEPS, onStepPromptsChange }: StepsTabProps) {
+    const [steps, setSteps] = useLocalStorage<StepPrompt[]>(STORAGE_KEYS.STEPS_CONFIG, externalSteps);
     const [expandedStep, setExpandedStep] = useState<number | null>(null);
 
     const handleStepChange = (index: number, updates: Partial<StepPrompt>) => {
@@ -92,7 +61,8 @@ export function StepsTab({ stepPrompts: externalSteps = [], onStepPromptsChange 
     };
 
     const handleAddStep = () => {
-        const newSteps = [...steps, { ...defaultStep, name: `` }];
+        const newStep = { ...DEFAULT_STEP };
+        const newSteps = [...steps, newStep];
         setSteps(newSteps);
         onStepPromptsChange?.(newSteps);
         setExpandedStep(newSteps.length - 1);

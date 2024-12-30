@@ -10,14 +10,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { STORAGE_KEYS } from "@/lib/constants";
+import { DEFAULT_FUNCTIONS } from "@/lib/config-utils";
+import { Function } from "../types";
 
-interface Function {
-    name: string;
-    description: string;
-    enabled: boolean;
-    category: string;
-    icon: React.ComponentType<{ className?: string }>;
-    beta?: boolean;
+interface FunctionsTabProps {
+    onFunctionsChange?: (functions: Function[]) => void;
 }
 
 const predefinedFunctions: Function[] = [
@@ -169,49 +166,39 @@ const predefinedFunctions: Function[] = [
     },
 ];
 
-interface FunctionsTabProps {
-    onFunctionsChange?: (functions: Function[]) => void;
-}
-
 export function FunctionsTab({ onFunctionsChange }: FunctionsTabProps) {
-    const [savedEnabledFunctions, setSavedEnabledFunctions] = useLocalStorage<Array<{ name: string; description: string }>>(
-        STORAGE_KEYS.FUNCTION_CONFIG, 
-        []
+    const [selectedFunctions, setSelectedFunctions] = useLocalStorage<Function[]>(
+        STORAGE_KEYS.FUNCTION_CONFIG,
+        DEFAULT_FUNCTIONS
     );
     const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
 
-    // Initialize functions with saved enabled state
+    // Initialize functions with enabled state from saved functions
     const [functions, setFunctions] = useState(() => 
         predefinedFunctions.map(func => ({
             ...func,
-            enabled: savedEnabledFunctions.some(saved => saved.name === func.name)
+            enabled: selectedFunctions.some(saved => saved.name === func.name)
         }))
     );
 
     const handleToggleFunction = (index: number) => {
         const newFunctions = [...functions];
-        newFunctions[index] = {
-            ...newFunctions[index],
-            enabled: !newFunctions[index].enabled,
-        };
+        newFunctions[index].enabled = !newFunctions[index].enabled;
         setFunctions(newFunctions);
-        
-        // Save name and description of enabled functions to local storage
+
+        // Save enabled functions to local storage
         const enabledFunctions = newFunctions
             .filter(func => func.enabled)
-            .map(func => ({
-                name: func.name,
-                description: func.description
-            }));
-        setSavedEnabledFunctions(enabledFunctions);
+            .map(func => ({ ...func, enabled: true }));
+        setSelectedFunctions(enabledFunctions);
         
         onFunctionsChange?.(newFunctions);
     };
 
-    const toggleCategory = (category: string) => {
-        setCollapsedCategories((prev) => ({
+    const handleToggleCategory = (category: string) => {
+        setCollapsedCategories(prev => ({
             ...prev,
-            [category]: !prev[category],
+            [category]: !prev[category]
         }));
     };
 
@@ -230,7 +217,7 @@ export function FunctionsTab({ onFunctionsChange }: FunctionsTabProps) {
                 <div className="space-y-6 p-2">
                     {Object.entries(groupedFunctions).map(([category, categoryFunctions]) => (
                         <div key={category} className="space-y-4">
-                            <Button variant="ghost" className="w-full flex items-center justify-between p-0 h-auto hover:bg-transparent" onClick={() => toggleCategory(category)}>
+                            <Button variant="ghost" className="w-full flex items-center justify-between p-0 h-auto hover:bg-transparent" onClick={() => handleToggleCategory(category)}>
                                 <div className="flex items-center space-x-2">
                                     <h3 className="text-lg font-semibold">{category}</h3>
                                     <Badge variant="secondary">

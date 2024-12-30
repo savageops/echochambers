@@ -10,20 +10,14 @@ import { AgentConfig } from "../types";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { STORAGE_KEYS } from "@/lib/constants";
+import { DEFAULT_AGENT_CONFIG } from "@/lib/config-utils";
 
 interface AgentTabProps {
     agentConfig?: AgentConfig;
     onAgentConfigChange?: (config: AgentConfig) => void;
 }
 
-const defaultAgentConfig: AgentConfig = {
-    role: "",
-    goals: "",
-    constraints: "",
-    memory: true,
-};
-
-export function AgentTab({ agentConfig: externalConfig = defaultAgentConfig, onAgentConfigChange }: AgentTabProps) {
+export function AgentTab({ agentConfig: externalConfig = DEFAULT_AGENT_CONFIG, onAgentConfigChange }: AgentTabProps) {
     const [config, setConfig] = useLocalStorage(STORAGE_KEYS.AGENT_CONFIG, externalConfig);
 
     const handleChange = <K extends keyof AgentConfig>(key: K, value: AgentConfig[K]) => {

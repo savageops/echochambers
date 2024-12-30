@@ -6,13 +6,14 @@ import { TabsContent } from "@/components/ui/tabs";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Badge } from "@/components/ui/badge";
 import { STORAGE_KEYS } from "@/lib/constants";
+import { DEFAULT_TEMPLATE } from "@/lib/config-utils";
 
 interface TemplateTabProps {
     promptTemplate?: string;
     onPromptTemplateChange?: (template: string) => void;
 }
 
-export function TemplateTab({ promptTemplate: externalTemplate = "", onPromptTemplateChange }: TemplateTabProps) {
+export function TemplateTab({ promptTemplate: externalTemplate = DEFAULT_TEMPLATE, onPromptTemplateChange }: TemplateTabProps) {
     const [template, setTemplate] = useLocalStorage(STORAGE_KEYS.TEMPLATE_CONFIG, externalTemplate);
 
     const handleChange = (value: string) => {

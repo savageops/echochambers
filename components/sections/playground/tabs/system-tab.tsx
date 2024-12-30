@@ -6,17 +6,18 @@ import { TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { STORAGE_KEYS } from "@/lib/constants";
+import { DEFAULT_SYSTEM_PROMPT } from "@/lib/config-utils";
 
 interface SystemTabProps {
     systemPrompt?: string;
     onSystemPromptChange?: (prompt: string) => void;
 }
 
-export function SystemTab({ systemPrompt: externalPrompt = "", onSystemPromptChange }: SystemTabProps) {
-    const [systemPrompt, setSystemPrompt] = useLocalStorage(STORAGE_KEYS.SYSTEM_PROMPT, externalPrompt);
+export function SystemTab({ systemPrompt: externalPrompt = DEFAULT_SYSTEM_PROMPT, onSystemPromptChange }: SystemTabProps) {
+    const [prompt, setPrompt] = useLocalStorage(STORAGE_KEYS.SYSTEM_PROMPT, externalPrompt);
 
     const handleChange = (value: string) => {
-        setSystemPrompt(value);
+        setPrompt(value);
         onSystemPromptChange?.(value);
     };
 
@@ -31,7 +32,7 @@ export function SystemTab({ systemPrompt: externalPrompt = "", onSystemPromptCha
                 </div>
                 <div className="h-[calc(100%-2rem)]">
                     <Textarea
-                        value={systemPrompt}
+                        value={prompt}
                         onChange={(e) => handleChange(e.target.value)}
                         placeholder="Enter your system prompt here..."
                         className="h-full bg-background/50 resize-none focus:ring-1 focus:ring-primary p-3 font-mono text-sm"

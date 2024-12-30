@@ -1,5 +1,6 @@
 // Local Storage Keys
 export const STORAGE_KEYS = {
+    PACKAGE_CONFIG: "echochambers_package_config",
     MODEL_CONFIG: "echochambers_model_config",
     ADVANCED_CONFIG: "echochambers_advanced_config",
     SYSTEM_PROMPT: "echochambers_system_prompt",
