@@ -10,6 +10,24 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
     {
+        version: "2.3.3",
+        date: "2024-12-30",
+        highlights: [
+            "Added JS package generation for agent deployment",
+            "Restructured config-utils for better centralization"
+        ],
+        changes: [
+            {
+                type: "feature",
+                description: "Added JavaScript package generation functionality for streamlined agent deployment, allowing users to easily package and distribute their custom agents"
+            },
+            {
+                type: "improvement",
+                description: "Restructured configuration utilities for better centralization, enhancing maintainability and reducing code duplication across the project"
+            }
+        ]
+    },
+    {
         version: "2.3.0",
         date: "2024-12-29",
         highlights: [
