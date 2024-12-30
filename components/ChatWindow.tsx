@@ -23,16 +23,19 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
     const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
     const [mounted, setMounted] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [pollInterval] = useState<number>(2000); // 2 seconds default polling
 
     useEffect(() => {
         setMounted(true);
+        return () => setMounted(false);
     }, []);
 
     useEffect(() => {
+        if (!mounted) return;
+
         const fetchMessages = async () => {
             try {
                 const sanitizedRoomId = encodeURIComponent(roomId.toLowerCase().replace("#", ""));
-
                 const response = await fetch(`/api/rooms/${sanitizedRoomId}/history`);
 
                 if (!response.ok) {
@@ -53,10 +56,17 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
             }
         };
 
+        // Initial fetch
         fetchMessages();
-        const interval = setInterval(fetchMessages, 2000);
-        return () => clearInterval(interval);
-    }, [roomId]);
+
+        // Set up polling
+        const interval = setInterval(fetchMessages, pollInterval);
+
+        // Cleanup function
+        return () => {
+            clearInterval(interval);
+        };
+    }, [roomId, mounted, pollInterval]); // Added mounted and pollInterval as dependencies
 
     if (!mounted) {
         return (

@@ -8,14 +8,15 @@ import { Search, Sparkles } from "lucide-react";
 import { RoomGrid } from "@/components/RoomGrid";
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { ChatMessage, ChatRoom } from "@/server/types";
 
 interface AnimatedContentProps {
-    initialRooms: any[];
+    initialRooms: (ChatRoom & { messages: ChatMessage[] })[];
 }
 
 export function AnimatedContent({ initialRooms }: AnimatedContentProps) {
     const [mounted, setMounted] = useState(false);
-    const [rooms, setRooms] = useState(initialRooms);
+    const [rooms, setRooms] = useState<(ChatRoom & { messages: ChatMessage[] })[]>(initialRooms);
     const [uniqueAgents, setUniqueAgents] = useState(new Set<string>());
     const [uniqueModels, setUniqueModels] = useState(new Set<string>());
     const [searchText, setSearchText] = useState("");
@@ -23,28 +24,28 @@ export function AnimatedContent({ initialRooms }: AnimatedContentProps) {
     const filteredRooms = rooms.filter((room) => room.name.toLowerCase().includes(searchText.toLowerCase()));
 
     const fetchRoomsAndStats = async () => {
-        const roomsData = await getRooms();
-        setRooms(roomsData.map(room => ({
-            ...room,
-            messages: [] // Initialize with empty messages array
-        })));
+        try {
+            // Fetch rooms and stats in parallel
+            const [roomsResponse, statsResponse] = await Promise.all([
+                getRooms(),
+                fetch('/api/rooms/stats').then(res => res.json())
+            ]);
 
-        // Fetch messages for all rooms and collect unique agents and models
-        const agents = new Set<string>();
-        const models = new Set<string>();
+            // Add empty messages array to each room
+            const roomsWithMessages = roomsResponse.map(room => ({
+                ...room,
+                messages: []
+            })) as (ChatRoom & { messages: ChatMessage[] })[];
 
-        await Promise.all(
-            roomsData.map(async (room) => {
-                const messages = await getMessages(room.id);
-                messages.forEach((msg) => {
-                    agents.add(msg.sender.username);
-                    models.add(msg.sender.model);
-                });
-            })
-        );
+            setRooms(roomsWithMessages);
 
-        setUniqueAgents(agents);
-        setUniqueModels(models);
+            if (!statsResponse.error) {
+                setUniqueAgents(new Set(statsResponse.uniqueAgents));
+                setUniqueModels(new Set(statsResponse.uniqueModels));
+            }
+        } catch (error) {
+            console.error('Error fetching rooms and stats:', error);
+        }
     };
 
     useEffect(() => {

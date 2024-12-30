@@ -6,12 +6,31 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, X, ChevronUp, ChevronDown, ChevronRight, ChevronDown as Expand } from "lucide-react";
-import { StepPrompt } from "../types";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { STORAGE_KEYS } from "@/lib/constants";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+
+interface StepParams {
+    model?: string;
+    temperature?: number;
+    topP?: number;
+    frequencyPenalty?: number;
+    presencePenalty?: number;
+    maxTokens?: number;
+    stopSequences?: string[];
+}
+
+interface StepPrompt {
+    name: string;
+    prompt: string;
+    checkpoint: boolean;
+    customParams: boolean;
+    params?: StepParams;
+}
 
 interface StepsTabProps {
     stepPrompts?: StepPrompt[];
@@ -22,6 +41,17 @@ const defaultStep: StepPrompt = {
     name: "",
     prompt: "",
     checkpoint: false,
+    customParams: false,
+};
+
+const defaultParams: StepParams = {
+    model: "",
+    temperature: 0.7,
+    topP: 0.9,
+    frequencyPenalty: 0,
+    presencePenalty: 0,
+    maxTokens: 2048,
+    stopSequences: [],
 };
 
 export function StepsTab({ stepPrompts: externalSteps = [], onStepPromptsChange }: StepsTabProps) {
@@ -29,7 +59,34 @@ export function StepsTab({ stepPrompts: externalSteps = [], onStepPromptsChange 
     const [expandedStep, setExpandedStep] = useState<number | null>(null);
 
     const handleStepChange = (index: number, updates: Partial<StepPrompt>) => {
-        const newSteps = steps.map((step, i) => (i === index ? { ...defaultStep, ...step, ...updates } : step));
+        const newSteps = steps.map((step, i) => {
+            if (i !== index) return step;
+            
+            // If we're updating customParams to false, remove the params object
+            if ('customParams' in updates && updates.customParams === false) {
+                const { name, prompt, checkpoint, customParams } = { ...step, ...updates };
+                return { name, prompt, checkpoint, customParams };
+            }
+            
+            // If we're enabling customParams, initialize the params object
+            if ('customParams' in updates && updates.customParams === true && !step.params) {
+                return { ...step, ...updates, params: { ...defaultParams } };
+            }
+            
+            return { ...step, ...updates };
+        });
+        setSteps(newSteps);
+        onStepPromptsChange?.(newSteps);
+    };
+
+    const handleParamChange = (index: number, paramUpdates: Partial<StepParams>) => {
+        const newSteps = steps.map((step, i) => {
+            if (i !== index) return step;
+            return {
+                ...step,
+                params: { ...(step.params || defaultParams), ...paramUpdates }
+            };
+        });
         setSteps(newSteps);
         onStepPromptsChange?.(newSteps);
     };
@@ -85,15 +142,135 @@ export function StepsTab({ stepPrompts: externalSteps = [], onStepPromptsChange 
                                             </Button>
                                         </div>
                                         <div className="flex items-center gap-2 ml-auto">
-                                            <Label className="text-xs sm:text-sm">Checkpoint</Label>
+                                            <Label className="text-xs sm:text-sm">Custom Parameters</Label>
+                                            <Switch checked={step.customParams} onCheckedChange={(checked) => handleStepChange(index, { customParams: checked })} />
+                                            <Label className="text-xs sm:text-sm ml-4">Checkpoint</Label>
                                             <Switch checked={step.checkpoint} onCheckedChange={(checked) => handleStepChange(index, { checkpoint: checked })} />
                                         </div>
                                     </div>
                                 </div>
                                 <AnimatePresence>
                                     {expandedStep === index && (
-                                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }} className="space-y-2 mt-3">
+                                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }} className="space-y-4 mt-3">
                                             <Textarea value={step.prompt || ""} onChange={(e) => handleStepChange(index, { prompt: e.target.value })} placeholder="Enter the prompt for this step..." className="text-sm min-h-[50px] resize-y w-full" />
+                                            
+                                            {step.customParams && (
+                                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4 p-4 rounded-lg border bg-background/50">
+                                                    <div className="space-y-2">
+                                                        <Label>Model</Label>
+                                                        <Input
+                                                            type="text"
+                                                            placeholder="Enter model name (e.g., openai/gpt-4o, anthropic/claude-2)"
+                                                            value={step.params?.model || ""}
+                                                            onChange={(e) => handleParamChange(index, { model: e.target.value })}
+                                                            className="font-mono"
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <div className="flex justify-between">
+                                                            <Label>Temperature</Label>
+                                                            <span className="text-sm text-muted-foreground">{step.params?.temperature}</span>
+                                                        </div>
+                                                        <Slider
+                                                            value={[step.params?.temperature || 0.7]}
+                                                            min={0}
+                                                            max={2}
+                                                            step={0.1}
+                                                            onValueChange={([value]) => handleParamChange(index, { temperature: value })}
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <div className="flex justify-between">
+                                                            <Label>Top P</Label>
+                                                            <span className="text-sm text-muted-foreground">{step.params?.topP}</span>
+                                                        </div>
+                                                        <Slider
+                                                            value={[step.params?.topP || 0.9]}
+                                                            min={0}
+                                                            max={1}
+                                                            step={0.1}
+                                                            onValueChange={([value]) => handleParamChange(index, { topP: value })}
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <div className="flex justify-between">
+                                                            <Label>Frequency Penalty</Label>
+                                                            <span className="text-sm text-muted-foreground">{step.params?.frequencyPenalty}</span>
+                                                        </div>
+                                                        <Slider
+                                                            value={[step.params?.frequencyPenalty || 0]}
+                                                            min={-2}
+                                                            max={2}
+                                                            step={0.1}
+                                                            onValueChange={([value]) => handleParamChange(index, { frequencyPenalty: value })}
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <div className="flex justify-between">
+                                                            <Label>Presence Penalty</Label>
+                                                            <span className="text-sm text-muted-foreground">{step.params?.presencePenalty}</span>
+                                                        </div>
+                                                        <Slider
+                                                            value={[step.params?.presencePenalty || 0]}
+                                                            min={-2}
+                                                            max={2}
+                                                            step={0.1}
+                                                            onValueChange={([value]) => handleParamChange(index, { presencePenalty: value })}
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <div className="flex justify-between">
+                                                            <Label>Max Tokens</Label>
+                                                            <span className="text-sm text-muted-foreground">{step.params?.maxTokens}</span>
+                                                        </div>
+                                                        <Slider
+                                                            value={[step.params?.maxTokens || 2048]}
+                                                            min={1}
+                                                            max={16000}
+                                                            step={1}
+                                                            onValueChange={([value]) => handleParamChange(index, { maxTokens: value })}
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <Label>Stop Sequences</Label>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {(step.params?.stopSequences || []).map((seq, seqIndex) => (
+                                                                <div key={seqIndex} className="flex items-center gap-1 bg-background/50 rounded px-2 py-1">
+                                                                    <span className="text-sm">{seq}</span>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        className="h-4 w-4 p-0"
+                                                                        onClick={() => {
+                                                                            const newSequences = (step.params?.stopSequences || []).filter((_, i) => i !== seqIndex);
+                                                                            handleParamChange(index, { stopSequences: newSequences });
+                                                                        }}
+                                                                    >
+                                                                        <X className="h-3 w-3" />
+                                                                    </Button>
+                                                                </div>
+                                                            ))}
+                                                            <Input
+                                                                placeholder="Add stop sequence"
+                                                                className="max-w-56 h-8 text-sm"
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter' && e.currentTarget.value) {
+                                                                        const newSequences = [...(step.params?.stopSequences || []), e.currentTarget.value];
+                                                                        handleParamChange(index, { stopSequences: newSequences });
+                                                                        e.currentTarget.value = '';
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            )}
                                         </motion.div>
                                     )}
                                 </AnimatePresence>

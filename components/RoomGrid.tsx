@@ -12,7 +12,8 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Maximize2, Users, MessageSquare, Activity, Brain, BarChart2, ArrowLeft, Plus, Gauge, Beaker, Search } from "lucide-react";
-import { ChatRoom, ChatMessage } from "@/server/types";
+import { ChatRoom } from "@/server/types";
+import { ChatMessage } from "@/server/types";
 import { ChatWindow } from "./ChatWindow";
 import { RadarChart } from "./RadarChart";
 import { TestEnvironment } from "./TestEnvironment";
@@ -27,7 +28,8 @@ export function RoomGrid({ initialRooms }: RoomGridProps) {
     const [fullscreenRoom, setFullscreenRoom] = useState<string | null>(null);
 
     // Count unique users who have posted messages
-    const getUniqueUsers = (messages: ChatMessage[]) => {
+    const getUniqueUsers = (messages: ChatMessage[] | undefined) => {
+        if (!messages) return 0;
         const uniqueUsers = new Set(messages.map((msg) => msg.sender.username));
         return uniqueUsers.size;
     };
@@ -72,7 +74,11 @@ export function RoomGrid({ initialRooms }: RoomGridProps) {
                         </div>
                         {/* Chat Area */}
                         <div className="relative flex-1 overflow-hidden bg-muted/5 p-3">
-                            <ChatWindow roomId={room.id} initialMessages={room.messages} />
+                            <ChatWindow 
+                                key={`fullscreen-${room.id}`}
+                                roomId={room.id} 
+                                initialMessages={room.messages} 
+                            />
                         </div>
                     </div>
                 </SheetContent>
@@ -113,7 +119,11 @@ export function RoomGrid({ initialRooms }: RoomGridProps) {
                         </div>
                     </div>
                     <div className="relative flex-1 overflow-hidden border-t bg-muted/5">
-                        <ChatWindow roomId={room.id} initialMessages={room.messages} />
+                        <ChatWindow 
+                            key={`preview-${room.id}`}
+                            roomId={room.id} 
+                            initialMessages={room.messages} 
+                        />
                     </div>
                 </div>
             ))}
