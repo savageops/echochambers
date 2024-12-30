@@ -3,8 +3,8 @@
 import { Message } from "../types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Trash2, Loader2 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Send, Trash2, Loader2, Copy, Check } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 import ReactMarkdown, { Components } from "react-markdown";
@@ -28,6 +28,17 @@ interface ChatAreaProps {
 export function ChatArea({ messages, userInput, isLoading, processingStep, onUserInputChange, onSend, clearChat }: ChatAreaProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+    const copyToClipboard = async (code: string) => {
+        try {
+            await navigator.clipboard.writeText(code);
+            setCopiedCode(code);
+            setTimeout(() => setCopiedCode(null), 2000);
+        } catch (err) {
+            console.error("Failed to copy code:", err);
+        }
+    };
 
     const scrollToBottom = () => {
         if (scrollRef.current) {
@@ -83,43 +94,56 @@ export function ChatArea({ messages, userInput, isLoading, processingStep, onUse
                                     className="prose prose-sm dark:prose-invert max-w-none break-words"
                                     components={{
                                         p({ children }) {
-                                            return <p className="mb-2 last:mb-0">{children}</p>;
+                                            return <p className="mb-2 last:mb-0 text-sm whitespace-pre-wrap break-words">{children}</p>;
                                         },
                                         code({ className, children, ...props }: ComponentPropsWithoutRef<"code">) {
                                             const match = /language-(\w+)/.exec(className || "");
                                             const isInline = !match;
+                                            const codeString = String(children).trim();
+
                                             if (isInline) {
                                                 return (
-                                                    <code className="bg-muted/50 rounded px-1" {...props}>
+                                                    <code className="bg-card/30 rounded px-1 text-xs whitespace-pre-wrap break-all" {...props}>
                                                         {children}
                                                     </code>
                                                 );
                                             }
                                             return (
                                                 <div className="relative my-3">
-                                                    <code className="block bg-muted/50 p-2 rounded-lg text-sm overflow-x-auto" {...props}>
+                                                    <div className="absolute right-1">
+                                                        <button onClick={() => copyToClipboard(codeString)} className="p-1.5 rounded-md bg-muted/10 hover:bg-muted transition-colors" title="Copy code">
+                                                            {copiedCode === codeString ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
+                                                        </button>
+                                                    </div>
+                                                    <div className="flex items-center justify-between px-3 py-1.5 border-b border-muted/20">
+                                                        <span className="text-xs text-muted-foreground">{match ? match[1] : "code"}</span>
+                                                    </div>
+                                                    <code className="block bg-card/30 p-3 rounded-lg text-xs whitespace-pre-wrap break-all overflow-x-auto" {...props}>
                                                         {children}
                                                     </code>
                                                 </div>
                                             );
                                         },
                                         ul({ children }) {
-                                            return <ul className="list-disc pl-4 mb-2 space-y-1">{children}</ul>;
+                                            return <ul className="list-disc pl-4 mb-2 space-y-1 text-sm break-words">{children}</ul>;
                                         },
                                         ol({ children }) {
-                                            return <ol className="list-decimal pl-4 mb-2 space-y-1">{children}</ol>;
+                                            return <ol className="list-decimal pl-4 mb-2 space-y-1 text-sm break-words">{children}</ol>;
                                         },
                                         li({ children }) {
-                                            return <li className="mb-1">{children}</li>;
+                                            return <li className="mb-1 text-sm break-words">{children}</li>;
                                         },
                                         h1({ children }) {
-                                            return <h1 className="text-xl font-semibold mb-2 mt-3">{children}</h1>;
+                                            return <h1 className="text-lg font-semibold mb-2 mt-3 break-words">{children}</h1>;
                                         },
                                         h2({ children }) {
-                                            return <h2 className="text-lg font-semibold mb-2 mt-3">{children}</h2>;
+                                            return <h2 className="text-base font-semibold mb-2 mt-3 break-words">{children}</h2>;
                                         },
                                         h3({ children }) {
-                                            return <h3 className="text-base font-semibold mb-2 mt-3">{children}</h3>;
+                                            return <h3 className="text-sm font-semibold mb-2 mt-3 break-words">{children}</h3>;
+                                        },
+                                        blockquote({ children }) {
+                                            return <blockquote className="border-l-2 border-muted pl-4 italic my-2 break-words">{children}</blockquote>;
                                         },
                                     }}
                                 >
