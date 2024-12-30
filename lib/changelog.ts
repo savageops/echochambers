@@ -13,10 +13,15 @@ export const changelog: ChangelogEntry[] = [
         version: "2.3.3",
         date: "2024-12-30",
         highlights: [
+            "Room search and filtering for easy navigation",
             "Added JS package generation for agent deployment",
             "Restructured config-utils for better centralization"
         ],
         changes: [
+            {
+                type: "feature",
+                description: "Added room search and filtering for easy navigation within the room list"
+            },
             {
                 type: "feature",
                 description: "Added JavaScript package generation functionality for streamlined agent deployment, allowing users to easily package and distribute their custom agents"
