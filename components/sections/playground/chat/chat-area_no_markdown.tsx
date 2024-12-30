@@ -7,8 +7,6 @@ import { Send, Trash2, Loader2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
-import ReactMarkdown, { Components } from "react-markdown";
-import { ComponentPropsWithoutRef } from "react";
 
 const MotionDiv = dynamic(() => import("framer-motion").then((mod) => mod.motion.div), { ssr: false });
 
@@ -78,53 +76,7 @@ export function ChatArea({ messages, userInput, isLoading, processingStep, onUse
                     {messages.map((message, index) => (
                         <MotionDiv key={index} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className={cn("flex gap-2", message.role === "user" ? "justify-end" : "justify-start")}>
                             <div className={cn("max-w-[80%] rounded-xl px-3 py-2 shadow-md", message.role === "user" ? "bg-primary/90 backdrop-blur-sm text-primary-foreground" : "bg-muted/90 backdrop-blur-sm")}>
-                                <div className="text-xs font-medium mb-1">{message.role === "user" ? "You" : "Assistant"}</div>
-                                <ReactMarkdown
-                                    className="prose prose-sm dark:prose-invert max-w-none break-words"
-                                    components={{
-                                        p({ children }) {
-                                            return <p className="mb-2 last:mb-0">{children}</p>;
-                                        },
-                                        code({ className, children, ...props }: ComponentPropsWithoutRef<"code">) {
-                                            const match = /language-(\w+)/.exec(className || "");
-                                            const isInline = !match;
-                                            if (isInline) {
-                                                return (
-                                                    <code className="bg-muted/50 rounded px-1" {...props}>
-                                                        {children}
-                                                    </code>
-                                                );
-                                            }
-                                            return (
-                                                <div className="relative my-3">
-                                                    <code className="block bg-muted/50 p-2 rounded-lg text-sm overflow-x-auto" {...props}>
-                                                        {children}
-                                                    </code>
-                                                </div>
-                                            );
-                                        },
-                                        ul({ children }) {
-                                            return <ul className="list-disc pl-4 mb-2 space-y-1">{children}</ul>;
-                                        },
-                                        ol({ children }) {
-                                            return <ol className="list-decimal pl-4 mb-2 space-y-1">{children}</ol>;
-                                        },
-                                        li({ children }) {
-                                            return <li className="mb-1">{children}</li>;
-                                        },
-                                        h1({ children }) {
-                                            return <h1 className="text-xl font-semibold mb-2 mt-3">{children}</h1>;
-                                        },
-                                        h2({ children }) {
-                                            return <h2 className="text-lg font-semibold mb-2 mt-3">{children}</h2>;
-                                        },
-                                        h3({ children }) {
-                                            return <h3 className="text-base font-semibold mb-2 mt-3">{children}</h3>;
-                                        },
-                                    }}
-                                >
-                                    {message.content}
-                                </ReactMarkdown>
+                                <p className="text-sm leading-relaxed whitespace-pre-wrap font-mono">{message.content}</p>
                             </div>
                         </MotionDiv>
                     ))}
@@ -151,7 +103,15 @@ export function ChatArea({ messages, userInput, isLoading, processingStep, onUse
             <div className="p-4 border-t bg-background/20 backdrop-blur-sm">
                 <div className="flex gap-3">
                     <Textarea ref={textareaRef} value={userInput} onChange={(e) => onUserInputChange(e.target.value)} onKeyDown={handleKeyDown} placeholder="Type your message..." className="min-h-[80px] bg-background/50 resize-none focus-visible:ring-1 focus-visible:ring-primary font-mono" />
-                    <button onClick={onSend} disabled={isLoading || !userInput.trim()} className={cn("bg-primary/10 hover:bg-primary shadow-md transition-all duration-200 rounded-md p-2", "h-[42px] w-[42px] flex items-center justify-center", (isLoading || !userInput.trim()) && "opacity-50 cursor-not-allowed")}>
+                    <button 
+                        onClick={onSend} 
+                        disabled={isLoading || !userInput.trim()} 
+                        className={cn(
+                            "bg-primary/10 hover:bg-primary shadow-md transition-all duration-200 rounded-md p-2",
+                            "h-[42px] w-[42px] flex items-center justify-center",
+                            (isLoading || !userInput.trim()) && "opacity-50 cursor-not-allowed"
+                        )}
+                    >
                         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     </button>
                 </div>
