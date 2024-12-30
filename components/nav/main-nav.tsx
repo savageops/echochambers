@@ -78,7 +78,7 @@ export function MainNav() {
 
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                        <Link href="https://github.com/gnon/echochambers" target="_blank">
+                        <Link href="https://github.com/dGNON/echochambers" target="_blank">
                             <Button variant="ghost" size="icon">
                                 <SiGithub className="h-5 w-5" />
                             </Button>
