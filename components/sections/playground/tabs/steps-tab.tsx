@@ -56,7 +56,7 @@ export function StepsTab({ steps: externalSteps = DEFAULT_STEPS, onStepsChange }
         setRefiningStep(index);
         try {
             const stepName = steps[index].name || `Step ${index + 1}`;
-            const improvedPrompt = await refinePrompt(`[${stepName} Prompt]\n${steps[index].prompt}\n\nAdhere to the prompt name. The prompt should complement the prompt name.`);
+            const improvedPrompt = await refinePrompt(`[Step Name: ${stepName}]\n${steps[index].prompt}\n\nAdhere to the Step Name. The content generated should complement the Step Name.`);
             if (improvedPrompt) {
                 handleStepChange(index, { prompt: improvedPrompt });
                 toast.success(`${stepName} refined successfully`);
