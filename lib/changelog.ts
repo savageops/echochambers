@@ -15,7 +15,8 @@ export const changelog: ChangelogEntry[] = [
         highlights: [
             "Added rooms sorting functionality",
             "Implemented rows sorting based on message count",
-            "Introduced list participants feature"
+            "Introduced list participants feature",
+            "Added loading indicator to room chats"
         ],
         changes: [
             {
@@ -29,6 +30,10 @@ export const changelog: ChangelogEntry[] = [
             {
                 type: "feature",
                 description: "Introduced list participants feature, enabling users to view all active members in a room"
+            },
+            {
+                type: "improvement",
+                description: "Added loading indicator to room chats, enhancing user experience during message retrieval"
             }
         ]
     },
