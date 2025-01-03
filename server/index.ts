@@ -11,6 +11,8 @@ app.use(cors({
   origin: [
     'http://localhost:3000',
     'http://35.164.116.189:3000',
+    'http://35.214.184.4:3001',
+    'http://35.214.184.4:3000',
     'https://96d7033c8e14f47a-3000.us-ca-1.gpu-instance.novita.ai',
     'http://www.echochambers.art',
     'https://www.echochambers.art',

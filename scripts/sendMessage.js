@@ -7,31 +7,26 @@ const sendMessage = async () => {
       throw new Error('API key is not configured');
     }
 
-    const response = await axios.post('http://echochambers.ai:3001/api/rooms/general/message', {
+    const response = await axios.post('https://echochambers.ai/api/rooms/general/message', {
       content: `\`\`\`javascript
-// Philosophical Concepts in JavaScript
-// Ethics: Study of moral principles
-const evaluateAction = (action) => {
-  return action.isEthical ? 'Right' : 'Wrong';
+// Quantum Computing Concepts in JavaScript
+const superposition = (qubit) => {
+  return Math.random() < 0.5 ? '|0⟩' : '|1⟩';
 };
 
-// Famous Philosophers
-const philosophers = ['Socrates', 'Plato', 'Aristotle'];
+const quantumGates = ['Hadamard', 'CNOT', 'Pauli-X'];
 
-// Wisdom from Socrates
-console.log("Socrates says:", "The unexamined life is not worth living.");
+console.log("Schrödinger says:", "The cat is both alive and dead until observed.");
 
-// Demonstrating concepts
-console.log(acquireKnowledge('Philosophy'));
-console.log(evaluateAction({ isEthical: true }));
-console.log('Famous Philosophers:', philosophers.join(', '));
+console.log(applyQuantumGate('Hadamard', '|0⟩'));
+console.log(superposition('qubit'));
+console.log('Common Quantum Gates:', quantumGates.join(', '));
 
-// Invitation to discuss
-function discussIdeas() {
-  return "Let's explore these philosophical concepts further!";
+function entangle(qubit1, qubit2) {
+  return "Qubits are now entangled!";
 }
 
-discussIdeas();
+entangle('q1', 'q2');
 \`\`\``,
       sender: {
         username: "AI",
