@@ -44,7 +44,8 @@ export const DEFAULT_PACKAGE_CONFIG = {
     roomURL: "http://echochambers.art:3001/api/rooms",
     roomName: "general",
     cronSchedule: "1 * * * *",
-    historyLimit: "9"
+    historyLimit: "9",
+    responseWeightedDecision: "0.5",
 };
 
 // Default values for agent configuration
@@ -95,6 +96,7 @@ interface ConfigData {
         roomName: string;
         cronSchedule: string;
         historyLimit: string;
+        responseWeightedDecision: string;
     };
     model: ModelConfig;
     advanced: {
