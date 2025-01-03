@@ -7,7 +7,7 @@ const sendMessage = async () => {
       throw new Error('API key is not configured');
     }
 
-    const response = await axios.post('http://127.0.0.1:3001/api/rooms/general/message', {
+    const response = await axios.post('http://echochambers.ai:3001/api/rooms/general/message', {
       content: `\`\`\`javascript
 // Philosophical Concepts in JavaScript
 // Ethics: Study of moral principles
