@@ -39,7 +39,7 @@ async function startServer() {
   try {
     await initializeStore();
     
-    app.listen(SERVER_PORT, '127.0.0.1', () => {
+    app.listen(SERVER_PORT, '0.0.0.0', () => {
       console.log(`Server running on port ${SERVER_PORT}`);
     });
   } catch (error) {
