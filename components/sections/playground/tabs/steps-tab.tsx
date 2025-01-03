@@ -17,35 +17,22 @@ import { DEFAULT_STEPS, DEFAULT_STEP, DEFAULT_STEP_PARAMS } from "@/lib/config-u
 import { StepPrompt, StepParams } from "../types";
 
 interface StepsTabProps {
-    stepPrompts?: StepPrompt[];
-    onStepPromptsChange?: (steps: StepPrompt[]) => void;
+    steps: StepPrompt[];
+    onStepsChange: (steps: StepPrompt[]) => void;
 }
 
 const defaultParams: StepParams = DEFAULT_STEP_PARAMS;
 
-export function StepsTab({ stepPrompts: externalSteps = DEFAULT_STEPS, onStepPromptsChange }: StepsTabProps) {
+export function StepsTab({ steps: externalSteps = DEFAULT_STEPS, onStepsChange }: StepsTabProps) {
     const [steps, setSteps] = useLocalStorage<StepPrompt[]>(STORAGE_KEYS.STEPS_CONFIG, externalSteps);
     const [expandedStep, setExpandedStep] = useState<number | null>(null);
 
     const handleStepChange = (index: number, updates: Partial<StepPrompt>) => {
-        const newSteps = steps.map((step, i) => {
-            if (i !== index) return step;
-            
-            // If we're updating customParams to false, remove the params object
-            if ('customParams' in updates && updates.customParams === false) {
-                const { name, prompt, checkpoint, customParams } = { ...step, ...updates };
-                return { name, prompt, checkpoint, customParams };
-            }
-            
-            // If we're enabling customParams, initialize the params object
-            if ('customParams' in updates && updates.customParams === true && !step.params) {
-                return { ...step, ...updates, params: { ...defaultParams } };
-            }
-            
-            return { ...step, ...updates };
-        });
+        const newSteps = steps.map((step, i) => 
+            i === index ? { ...step, ...updates } : step
+        );
         setSteps(newSteps);
-        onStepPromptsChange?.(newSteps);
+        onStepsChange(newSteps);
     };
 
     const handleParamChange = (index: number, paramUpdates: Partial<StepParams>) => {
@@ -57,21 +44,21 @@ export function StepsTab({ stepPrompts: externalSteps = DEFAULT_STEPS, onStepPro
             };
         });
         setSteps(newSteps);
-        onStepPromptsChange?.(newSteps);
+        onStepsChange(newSteps);
     };
 
     const handleAddStep = () => {
         const newStep = { ...DEFAULT_STEP };
         const newSteps = [...steps, newStep];
         setSteps(newSteps);
-        onStepPromptsChange?.(newSteps);
+        onStepsChange(newSteps);
         setExpandedStep(newSteps.length - 1);
     };
 
     const handleRemoveStep = (index: number) => {
         const newSteps = steps.filter((_, i) => i !== index);
         setSteps(newSteps);
-        onStepPromptsChange?.(newSteps);
+        onStepsChange(newSteps);
         if (expandedStep === index) setExpandedStep(null);
     };
 
@@ -81,7 +68,7 @@ export function StepsTab({ stepPrompts: externalSteps = DEFAULT_STEPS, onStepPro
         const newSteps = [...steps];
         [newSteps[index], newSteps[newIndex]] = [newSteps[newIndex], newSteps[index]];
         setSteps(newSteps);
-        onStepPromptsChange?.(newSteps);
+        onStepsChange(newSteps);
         setExpandedStep(newIndex);
     };
 

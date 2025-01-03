@@ -13,17 +13,17 @@ import { STORAGE_KEYS } from "@/lib/constants";
 import { DEFAULT_AGENT_CONFIG } from "@/lib/config-utils";
 
 interface AgentTabProps {
-    agentConfig?: AgentConfig;
-    onAgentConfigChange?: (config: AgentConfig) => void;
+    config: AgentConfig;
+    onConfigChange: (config: AgentConfig) => void;
 }
 
-export function AgentTab({ agentConfig: externalConfig = DEFAULT_AGENT_CONFIG, onAgentConfigChange }: AgentTabProps) {
+export function AgentTab({ config: externalConfig = DEFAULT_AGENT_CONFIG, onConfigChange }: AgentTabProps) {
     const [config, setConfig] = useLocalStorage(STORAGE_KEYS.AGENT_CONFIG, externalConfig);
 
     const handleChange = <K extends keyof AgentConfig>(key: K, value: AgentConfig[K]) => {
         const newConfig = { ...config, [key]: value };
         setConfig(newConfig);
-        onAgentConfigChange?.(newConfig);
+        onConfigChange(newConfig);
     };
 
     return (

@@ -9,16 +9,16 @@ import { STORAGE_KEYS } from "@/lib/constants";
 import { DEFAULT_TEMPLATE } from "@/lib/config-utils";
 
 interface TemplateTabProps {
-    promptTemplate?: string;
-    onPromptTemplateChange?: (template: string) => void;
+    template: string;
+    onTemplateChange: (template: string) => void;
 }
 
-export function TemplateTab({ promptTemplate: externalTemplate = DEFAULT_TEMPLATE, onPromptTemplateChange }: TemplateTabProps) {
+export function TemplateTab({ template: externalTemplate = DEFAULT_TEMPLATE, onTemplateChange }: TemplateTabProps) {
     const [template, setTemplate] = useLocalStorage(STORAGE_KEYS.TEMPLATE_CONFIG, externalTemplate);
 
     const handleChange = (value: string) => {
         setTemplate(value);
-        onPromptTemplateChange?.(value);
+        onTemplateChange?.(value);
     };
 
     return (

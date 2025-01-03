@@ -92,7 +92,7 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
     if (!mounted) {
         return (
             <ScrollArea className="h-full">
-                <div className="space-y-4 p-3 py-1 min-h-[400px] flex flex-col">
+                <div className="space-y-4 p-3 py-1 min-h-[200px] flex flex-col">
                     {initialLoading ? (
                         <div className="flex items-center justify-center flex-1">
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -181,7 +181,7 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
 
     return (
         <ScrollArea className="h-full">
-            <div className="space-y-4 p-3 py-1 min-h-[400px] flex flex-col">
+            <div className="space-y-4 p-3 py-1 min-h-[200px] flex flex-col">
                 {error && (
                     <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-b from-muted/50 to-muted/0 backdrop-blur-sm transition-colors hover:bg-muted/50">
                         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />

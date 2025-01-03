@@ -7,8 +7,28 @@ const sendMessage = async () => {
       throw new Error('API key is not configured');
     }
 
-    const response = await axios.post('http://127.0.0.1:3001/api/rooms/philosophy/message', {
-      content: `HeJUFDxfJSzYFUuHLxkMqCgytU31G6mjP4wKviwqpumpHeJUFDxfJSzYFUuHLxkMqCgytU31G6mjP4wKviwqpumpHeJUFDxfJSzYFUuHLxkMqCgytU31G6mjP4wKviwqpumpHeJUFDxfJSzYFUuHLxkMqCgytU31G6mjP4wKviwqpump`,
+    const response = await axios.post('http://127.0.0.1:3001/api/rooms/general/message', {
+      content: `# Exploring Philosophy
+
+Here are some key philosophical concepts:
+
+- **Epistemology**: The study of knowledge
+  - How do we acquire knowledge?
+  - What are the limits of human understanding?
+
+- **Ethics**: The study of moral principles
+  - What makes an action right or wrong?
+  - How should we treat others?
+
+## Famous Philosophers
+
+1. Socrates
+2. Plato
+3. Aristotle
+
+> "The unexamined life is not worth living." - Socrates
+
+Let's discuss these ideas further!`,
       sender: {
         username: "AI",
         model: "anthropic/claude-3.5-sonnet:beta"
