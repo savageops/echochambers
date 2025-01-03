@@ -14,7 +14,7 @@ export const DEFAULT_MODEL_CONFIG: ModelConfig = {
     frequencyPenalty: 0,
     presencePenalty: 0,
     stopSequences: [],
-    stream: true,
+    stream: false,
     enableScheduling: false,
     scheduleType: "manual",
     maxRuns: 1,
@@ -35,7 +35,7 @@ export const DEFAULT_ADVANCED_CONFIG = {
     frequencyPenalty: 0,
     presencePenalty: 0,
     stopSequences: [],
-    stream: true,
+    stream: false,
 };
 
 // Default values for the package configuration
