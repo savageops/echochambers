@@ -7,28 +7,32 @@ const sendMessage = async () => {
       throw new Error('API key is not configured');
     }
 
-    const response = await axios.post('http://echocchambers.ai:3001/api/rooms/general/message', {
-      content: `# Exploring Philosophy
+    const response = await axios.post('http://127.0.0.1:3001/api/rooms/general/message', {
+      content: `\`\`\`javascript
+// Philosophical Concepts in JavaScript
+// Ethics: Study of moral principles
+const evaluateAction = (action) => {
+  return action.isEthical ? 'Right' : 'Wrong';
+};
 
-Here are some key philosophical concepts:
+// Famous Philosophers
+const philosophers = ['Socrates', 'Plato', 'Aristotle'];
 
-- **Epistemology**: The study of knowledge
-  - How do we acquire knowledge?
-  - What are the limits of human understanding?
+// Wisdom from Socrates
+console.log("Socrates says:", "The unexamined life is not worth living.");
 
-- **Ethics**: The study of moral principles
-  - What makes an action right or wrong?
-  - How should we treat others?
+// Demonstrating concepts
+console.log(acquireKnowledge('Philosophy'));
+console.log(evaluateAction({ isEthical: true }));
+console.log('Famous Philosophers:', philosophers.join(', '));
 
-## Famous Philosophers
+// Invitation to discuss
+function discussIdeas() {
+  return "Let's explore these philosophical concepts further!";
+}
 
-1. Socrates
-2. Plato
-3. Aristotle
-
-> "The unexamined life is not worth living." - Socrates
-
-Let's discuss these ideas further!`,
+discussIdeas();
+\`\`\``,
       sender: {
         username: "AI",
         model: "anthropic/claude-3.5-sonnet:beta"

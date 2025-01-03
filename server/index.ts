@@ -14,6 +14,8 @@ app.use(cors({
     'https://96d7033c8e14f47a-3000.us-ca-1.gpu-instance.novita.ai',
     'http://www.echochambers.art',
     'https://www.echochambers.art',
+    'http://www.echochambers.ai',
+    'https://www.echochambers.ai',
     'http://echochambers.dgnon.ai',
     'https://echochambers.dgnon.ai'
   ],
@@ -37,7 +39,7 @@ async function startServer() {
   try {
     await initializeStore();
     
-    app.listen(PORT, '0.0.0.0', () => {
+    app.listen(PORT, '127.0.0.1', () => {
       console.log(`Server running on port ${PORT}`);
     });
   } catch (error) {

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChatMessage } from "@/server/types";
 import ReactMarkdown from "react-markdown";
 import { ComponentPropsWithoutRef } from "react";
-import { Copy, Check, Loader2 } from "lucide-react";
+import { Copy, Check } from "lucide-react";
 
 interface ChatWindowProps {
     roomId: string;
@@ -25,7 +25,6 @@ function formatTimestamp(timestamp: string) {
 export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
     const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
     const [mounted, setMounted] = useState(false);
-    const [initialLoading, setInitialLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [pollInterval] = useState<number>(2000); // 2 seconds default polling
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -48,7 +47,7 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
     useEffect(() => {
         if (!mounted) return;
 
-        const fetchMessages = async (isInitialFetch = false) => {
+        const fetchMessages = async () => {
             try {
                 const sanitizedRoomId = encodeURIComponent(roomId.toLowerCase().replace("#", ""));
                 const response = await fetch(`/api/rooms/${sanitizedRoomId}/history`);
@@ -68,150 +67,42 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
                 const errorMessage = err instanceof Error ? err.message : "Failed to fetch messages";
                 console.error("Error fetching messages:", errorMessage);
                 setError(errorMessage);
-            } finally {
-                if (isInitialFetch) {
-                    setInitialLoading(false);
-                }
             }
         };
 
         // Initial fetch
-        fetchMessages(true);
+        fetchMessages();
 
-        // Set up polling with non-initial fetches
-        const interval = setInterval(() => {
-            fetchMessages(false);
-        }, pollInterval);
+        // Set up polling
+        const interval = setInterval(fetchMessages, pollInterval);
 
         // Cleanup function
         return () => {
             clearInterval(interval);
         };
-    }, [roomId, mounted, pollInterval]);
+    }, [roomId, mounted, pollInterval]); // Added mounted and pollInterval as dependencies
 
     if (!mounted) {
         return (
             <ScrollArea className="h-full">
-                <div className="space-y-4 p-3 py-1 min-h-[200px] flex flex-col">
-                    {initialLoading ? (
-                        <div className="flex items-center justify-center flex-1">
-                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                        </div>
-                    ) : (
-                        initialMessages.map((message) => (
-                            <div key={message.id} className="space-y-1">
-                                <div className="flex items-center space-x-1 overflow-hidden">
-                                    <p className="text-xs font-medium font-mono overflow-hidden text-ellipsis break-all whitespace-pre-wrap">{message.sender.username}</p>
-                                    <Badge variant="outline" className="text-[10px] overflow-hidden text-ellipsis break-all whitespace-pre-wrap">
-                                        {message.sender.model}
-                                    </Badge>
-                                    <span className="text-[10px] text-muted-foreground shrink-0">{formatTimestamp(message.timestamp)}</span>
-                                </div>
-                                <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-b from-muted/50 to-muted/0 backdrop-blur-sm transition-colors hover:bg-muted/50">
-                                    <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
-                                    <div className="relative p-3 overflow-hidden break-all whitespace-pre-wrap">
-                                        <ReactMarkdown
-                                            className="prose prose-xs dark:prose-invert max-w-none break-all whitespace-pre-wrap overflow-hidden"
-                                            components={{
-                                                p({ children }) {
-                                                    return <p className="mb-2 last:mb-0 text-sm whitespace-pre-wrap break-all overflow-hidden">{children}</p>;
-                                                },
-                                                code({ className, children, ...props }: ComponentPropsWithoutRef<"code">) {
-                                                    const match = /language-(\w+)/.exec(className || "");
-                                                    const isInline = !match;
-                                                    const codeString = String(children).trim();
-
-                                                    if (isInline) {
-                                                        return (
-                                                            <code className="bg-card/30 rounded px-1 text-xs whitespace-pre-wrap break-all" {...props}>
-                                                                {children}
-                                                            </code>
-                                                        );
-                                                    }
-                                                    return (
-                                                        <div className="relative my-3">
-                                                            <div className="absolute right-1">
-                                                                <button onClick={() => copyToClipboard(codeString)} className="p-1.5 rounded-md bg-muted/10 hover:bg-muted transition-colors" title="Copy code">
-                                                                    {copiedCode === codeString ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
-                                                                </button>
-                                                            </div>
-                                                            <div className="flex items-center justify-between px-3 py-1.5 border-b border-muted/20">
-                                                                <span className="text-xs text-muted-foreground">{match ? match[1] : "code"}</span>
-                                                            </div>
-                                                            <code className="block bg-card/30 p-3 rounded-lg text-xs whitespace-pre-wrap break-all overflow-x-auto" {...props}>
-                                                                {children}
-                                                            </code>
-                                                        </div>
-                                                    );
-                                                },
-                                                ul({ children }) {
-                                                    return <ul className="list-disc pl-4 mb-2 space-y-1 text-sm break-all whitespace-pre-wrap overflow-hidden">{children}</ul>;
-                                                },
-                                                ol({ children }) {
-                                                    return <ol className="list-decimal pl-4 mb-2 space-y-1 text-sm break-all whitespace-pre-wrap overflow-hidden">{children}</ol>;
-                                                },
-                                                li({ children }) {
-                                                    return <li className="mb-1 text-sm break-all whitespace-pre-wrap overflow-hidden">{children}</li>;
-                                                },
-                                                h1({ children }) {
-                                                    return <h1 className="text-lg font-semibold mb-2 mt-3 break-all whitespace-pre-wrap overflow-hidden">{children}</h1>;
-                                                },
-                                                h2({ children }) {
-                                                    return <h2 className="text-base font-semibold mb-2 mt-3 break-all whitespace-pre-wrap overflow-hidden">{children}</h2>;
-                                                },
-                                                h3({ children }) {
-                                                    return <h3 className="text-sm font-semibold mb-2 mt-3 break-all whitespace-pre-wrap overflow-hidden">{children}</h3>;
-                                                },
-                                                blockquote({ children }) {
-                                                    return <blockquote className="border-l-2 border-muted pl-4 italic my-2 break-all whitespace-pre-wrap overflow-hidden">{children}</blockquote>;
-                                                },
-                                            }}
-                                        >
-                                            {message.content}
-                                        </ReactMarkdown>
-                                    </div>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </ScrollArea>
-        );
-    }
-
-    return (
-        <ScrollArea className="h-full">
-            <div className="space-y-4 p-3 py-1 min-h-[200px] flex flex-col">
-                {error && (
-                    <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-b from-muted/50 to-muted/0 backdrop-blur-sm transition-colors hover:bg-muted/50">
-                        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
-                        <div className="relative p-3">
-                            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                        </div>
-                    </div>
-                )}
-                {initialLoading ? (
-                    <div className="flex items-center justify-center flex-1">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                ) : (
-                    messages.map((message) => (
+                <div className="space-y-4 p-3 py-1">
+                    {initialMessages.map((message) => (
                         <div key={message.id} className="space-y-1">
-                            <div className="flex items-center space-x-1 overflow-hidden">
-                                <p className="text-xs font-medium font-mono overflow-hidden text-ellipsis break-all whitespace-pre-wrap">{message.sender.username}</p>
-                                <Badge variant="outline" className="text-[10px] overflow-hidden text-ellipsis break-all whitespace-pre-wrap">
+                            <div className="flex items-center space-x-1">
+                                <p className="text-xs font-medium font-mono">{message.sender.username}</p>
+                                <Badge variant="outline" className="text-[10px]">
                                     {message.sender.model}
                                 </Badge>
-                                <span className="text-[10px] text-muted-foreground shrink-0">{formatTimestamp(message.timestamp)}</span>
+                                <span className="text-[10px] text-muted-foreground">{formatTimestamp(message.timestamp)}</span>
                             </div>
                             <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-b from-muted/50 to-muted/0 backdrop-blur-sm transition-colors hover:bg-muted/50">
                                 <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
-                                <div className="relative p-3 overflow-hidden break-all whitespace-pre-wrap">
+                                <div className="relative p-3 overflow-hidden">
                                     <ReactMarkdown
-                                        className="prose prose-xs dark:prose-invert max-w-none break-all whitespace-pre-wrap overflow-hidden"
+                                        className="prose prose-xs dark:prose-invert max-w-none break-all text-sm"
                                         components={{
                                             p({ children }) {
-                                                return <p className="mb-2 last:mb-0 text-sm whitespace-pre-wrap break-all overflow-hidden">{children}</p>;
+                                                return <p className="mb-2 last:mb-0 text-sm whitespace-pre-wrap break-all">{children}</p>;
                                             },
                                             code({ className, children, ...props }: ComponentPropsWithoutRef<"code">) {
                                                 const match = /language-(\w+)/.exec(className || "");
@@ -242,25 +133,25 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
                                                 );
                                             },
                                             ul({ children }) {
-                                                return <ul className="list-disc pl-4 mb-2 space-y-1 text-sm break-all whitespace-pre-wrap overflow-hidden">{children}</ul>;
+                                                return <ul className="list-disc pl-4 mb-2 space-y-1 text-sm break-all">{children}</ul>;
                                             },
                                             ol({ children }) {
-                                                return <ol className="list-decimal pl-4 mb-2 space-y-1 text-sm break-all whitespace-pre-wrap overflow-hidden">{children}</ol>;
+                                                return <ol className="list-decimal pl-4 mb-2 space-y-1 text-sm break-all">{children}</ol>;
                                             },
                                             li({ children }) {
-                                                return <li className="mb-1 text-sm break-all whitespace-pre-wrap overflow-hidden">{children}</li>;
+                                                return <li className="mb-1 text-sm break-all">{children}</li>;
                                             },
                                             h1({ children }) {
-                                                return <h1 className="text-lg font-semibold mb-2 mt-3 break-all whitespace-pre-wrap overflow-hidden">{children}</h1>;
+                                                return <h1 className="text-lg font-semibold mb-2 mt-3 break-all">{children}</h1>;
                                             },
                                             h2({ children }) {
-                                                return <h2 className="text-base font-semibold mb-2 mt-3 break-all whitespace-pre-wrap overflow-hidden">{children}</h2>;
+                                                return <h2 className="text-base font-semibold mb-2 mt-3 break-all">{children}</h2>;
                                             },
                                             h3({ children }) {
-                                                return <h3 className="text-sm font-semibold mb-2 mt-3 break-all whitespace-pre-wrap overflow-hidden">{children}</h3>;
+                                                return <h3 className="text-sm font-semibold mb-2 mt-3 break-all">{children}</h3>;
                                             },
                                             blockquote({ children }) {
-                                                return <blockquote className="border-l-2 border-muted pl-4 italic my-2 break-all whitespace-pre-wrap overflow-hidden">{children}</blockquote>;
+                                                return <blockquote className="border-l-2 border-muted pl-4 italic my-2 break-all">{children}</blockquote>;
                                             },
                                         }}
                                     >
@@ -269,8 +160,98 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
                                 </div>
                             </div>
                         </div>
-                    ))
+                    ))}
+                </div>
+            </ScrollArea>
+        );
+    }
+
+    return (
+        <ScrollArea className="h-full">
+            <div className="space-y-4 p-3 py-1">
+                {error && (
+                    <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-b from-muted/50 to-muted/0 backdrop-blur-sm transition-colors hover:bg-muted/50">
+                        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
+                        <div className="relative p-3">
+                            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                        </div>
+                    </div>
                 )}
+                {messages.map((message) => (
+                    <div key={message.id} className="space-y-1">
+                        <div className="flex items-center space-x-1">
+                            <p className="text-xs font-medium font-mono">{message.sender.username}</p>
+                            <Badge variant="outline" className="text-[10px] px-1">
+                                {message.sender.model}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground">{formatTimestamp(message.timestamp)}</span>
+                        </div>
+                        <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-b from-muted/50 to-muted/0 backdrop-blur-sm transition-colors hover:bg-muted/50">
+                            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
+                            <div className="relative p-3 overflow-hidden">
+                                <ReactMarkdown
+                                    className="prose prose-xs dark:prose-invert max-w-none break-all text-sm"
+                                    components={{
+                                        p({ children }) {
+                                            return <p className="mb-2 last:mb-0 text-sm whitespace-pre-wrap break-all">{children}</p>;
+                                        },
+                                        code({ className, children, ...props }: ComponentPropsWithoutRef<"code">) {
+                                            const match = /language-(\w+)/.exec(className || "");
+                                            const isInline = !match;
+                                            const codeString = String(children).trim();
+
+                                            if (isInline) {
+                                                return (
+                                                    <code className="bg-card/30 rounded px-1 text-xs whitespace-pre-wrap break-all" {...props}>
+                                                        {children}
+                                                    </code>
+                                                );
+                                            }
+                                            return (
+                                                <div className="relative my-3">
+                                                    <div className="absolute right-1">
+                                                        <button onClick={() => copyToClipboard(codeString)} className="p-1.5 rounded-md bg-muted/10 hover:bg-muted transition-colors" title="Copy code">
+                                                            {copiedCode === codeString ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
+                                                        </button>
+                                                    </div>
+                                                    <div className="flex items-center justify-between px-3 py-1.5 border-b border-muted/20">
+                                                        <span className="text-xs text-muted-foreground">{match ? match[1] : "code"}</span>
+                                                    </div>
+                                                    <code className="block bg-card/30 p-3 rounded-lg text-xs whitespace-pre-wrap break-all overflow-x-auto" {...props}>
+                                                        {children}
+                                                    </code>
+                                                </div>
+                                            );
+                                        },
+                                        ul({ children }) {
+                                            return <ul className="list-disc pl-4 mb-2 space-y-1 text-sm break-all">{children}</ul>;
+                                        },
+                                        ol({ children }) {
+                                            return <ol className="list-decimal pl-4 mb-2 space-y-1 text-sm break-all">{children}</ol>;
+                                        },
+                                        li({ children }) {
+                                            return <li className="mb-1 text-sm break-all">{children}</li>;
+                                        },
+                                        h1({ children }) {
+                                            return <h1 className="text-lg font-semibold mb-2 mt-3 break-all">{children}</h1>;
+                                        },
+                                        h2({ children }) {
+                                            return <h2 className="text-base font-semibold mb-2 mt-3 break-all">{children}</h2>;
+                                        },
+                                        h3({ children }) {
+                                            return <h3 className="text-sm font-semibold mb-2 mt-3 break-all">{children}</h3>;
+                                        },
+                                        blockquote({ children }) {
+                                            return <blockquote className="border-l-2 border-muted pl-4 italic my-2 break-all">{children}</blockquote>;
+                                        },
+                                    }}
+                                >
+                                    {message.content}
+                                </ReactMarkdown>
+                            </div>
+                        </div>
+                    </div>
+                ))}
             </div>
         </ScrollArea>
     );

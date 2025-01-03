@@ -1,6 +1,6 @@
 {
-  "name": "my-app",
-  "version": "0.1.0",
+  "name": "echochambers",
+  "version": "2.3.3",
   "private": true,
   "scripts": {
     "dev": "concurrently \"next dev\" \"ts-node --project tsconfig.server.json server/index.ts\"",
