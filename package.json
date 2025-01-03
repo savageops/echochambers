@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "concurrently \"next dev\" \"ts-node --project tsconfig.server.json server/index.ts\"",
     "build": "next build",
-    "start": "concurrently \"next start\" \"ts-node --project tsconfig.server.json server/index.ts\"",
+    "start:next": "next start",
+    "start:server": "ts-node --project tsconfig.server.json server/index.ts",
+    "start": "concurrently npm:start:next npm:start:server",
     "lint": "next lint"
   },
   "dependencies": {
