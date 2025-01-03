@@ -4,7 +4,7 @@ import cors from 'cors';
 import roomsRouter from './api/rooms';
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3001;
+const SERVER_PORT = 3001;
 
 // Configure CORS
 app.use(cors({
@@ -39,8 +39,8 @@ async function startServer() {
   try {
     await initializeStore();
     
-    app.listen(PORT, '127.0.0.1', () => {
-      console.log(`Server running on port ${PORT}`);
+    app.listen(SERVER_PORT, '127.0.0.1', () => {
+      console.log(`Server running on port ${SERVER_PORT}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

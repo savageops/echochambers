@@ -5,9 +5,9 @@
   "scripts": {
     "dev": "concurrently \"next dev\" \"ts-node --project tsconfig.server.json server/index.ts\"",
     "build": "next build",
-    "start:next": "next start",
+    "start:next": "PORT=8080 next start",
     "start:server": "ts-node --project tsconfig.server.json server/index.ts",
-    "start": "concurrently npm:start:next npm:start:server",
+    "start": "concurrently \"npm run start:next\" \"npm run start:server\"",
     "lint": "next lint"
   },
   "dependencies": {
