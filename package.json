@@ -80,6 +80,7 @@
     "node-fetch": "^3.3.2",
     "openai": "^4.73.1",
     "pg": "^8.13.1",
+    "pm2": "^5.4.3",
     "react": "^18",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18",
