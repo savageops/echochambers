@@ -5,19 +5,20 @@ module.exports = {
       name: 'echochambers-next',
       script: 'node_modules/next/dist/bin/next',
       args: 'start',
-      instances: 'max',
+      instances: 9,
       exec_mode: 'cluster',
       watch: false,
-      max_memory_restart: '1G',
-      kill_timeout: 3000,
+      max_memory_restart: '512M',
+      kill_timeout: 5000,
       wait_ready: true,
-      listen_timeout: 10000,
-      max_restarts: 10,
-      min_uptime: '30s',
+      listen_timeout: 8000,
+      max_restarts: 5,
+      min_uptime: '60s',
+      exp_backoff_restart_delay: 100,
       env: {
         PORT: 3000,
         NODE_ENV: 'production',
-        NODE_OPTIONS: '--max-old-space-size=2048'
+        NODE_OPTIONS: '--max-old-space-size=512'
       },
     },
     {
@@ -25,18 +26,20 @@ module.exports = {
       script: './server/index.ts',
       interpreter: 'node',
       interpreter_args: '-r ts-node/register',
-      instances: 'max',
+      instances: 9,
       exec_mode: 'cluster',
       watch: false,
-      max_memory_restart: '1G',
-      kill_timeout: 3000,
+      max_memory_restart: '512M',
+      kill_timeout: 5000,
       wait_ready: true,
-      listen_timeout: 10000,
-      max_restarts: 10,
-      min_uptime: '30s',
+      listen_timeout: 8000,
+      max_restarts: 5,
+      min_uptime: '60s',
+      exp_backoff_restart_delay: 100,
       env: {
+        PORT: 3001,
         NODE_ENV: 'production',
-        NODE_OPTIONS: '--max-old-space-size=2048'
+        NODE_OPTIONS: '--max-old-space-size=512'
       },
     },
     // Development apps
@@ -60,13 +63,13 @@ module.exports = {
         '*.log',
         'chat.db-*'
       ],
-      max_memory_restart: '2G',
-      kill_timeout: 3000,
+      max_memory_restart: '1G',
+      kill_timeout: 5000,
       wait_ready: true,
       env: {
         PORT: 3000,
         NODE_ENV: 'development',
-        NODE_OPTIONS: '--max-old-space-size=4096'
+        NODE_OPTIONS: '--max-old-space-size=1024'
       },
     },
     {
@@ -85,12 +88,13 @@ module.exports = {
         '*.log',
         'chat.db-*'
       ],
-      max_memory_restart: '2G',
-      kill_timeout: 3000,
+      max_memory_restart: '1G',
+      kill_timeout: 5000,
       wait_ready: true,
       env: {
+        PORT: 3001,
         NODE_ENV: 'development',
-        NODE_OPTIONS: '--max-old-space-size=4096'
+        NODE_OPTIONS: '--max-old-space-size=1024'
       },
     },
   ],
