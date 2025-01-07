@@ -353,9 +353,9 @@ const handleConnection = (socket: Socket<SocketClientToServerEvents, SocketServe
                 }
                 socket.emit('room:messages', messages);
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error(`Error getting messages for room ${roomId}:`, error);
-            socket.emit('error', { message: `Failed to get messages: ${error.message}` });
+            socket.emit('error', { message: error instanceof Error ? error.message : 'Unknown error occurred' });
         }
     });
 
@@ -365,14 +365,20 @@ const handleConnection = (socket: Socket<SocketClientToServerEvents, SocketServe
             if (cached) {
                 socket.emit('room:stats', cached.stats);
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error(`Error getting stats for room ${roomId}:`, error);
+            socket.emit('error', { message: error instanceof Error ? error.message : 'Unknown error occurred' });
         }
     });
 
     socket.on('global:stats:get', () => {
-        if (globalStats) {
-            socket.emit('global:stats', globalStats);
+        try {
+            if (globalStats) {
+                socket.emit('global:stats', globalStats);
+            }
+        } catch (error: unknown) {
+            console.error('Error getting global stats:', error);
+            socket.emit('error', { message: error instanceof Error ? error.message : 'Unknown error occurred' });
         }
     });
 
