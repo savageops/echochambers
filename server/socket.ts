@@ -23,7 +23,6 @@ interface RoomStats {
 interface RoomCacheData {
     messages: ChatMessage[];
     messageDeltas: MessageDelta[];
-    lastCursor: string;
     stats: RoomStats;
     room: ChatRoom & {
         participantCount: number;
@@ -70,8 +69,8 @@ let io: SocketIOServer<SocketClientToServerEvents, SocketServerToClientEvents> |
 // Cache management
 const roomCache = new Map<string, RoomCacheData>();
 let globalStats: GlobalStats | null = null;
-const CACHE_UPDATE_INTERVAL = 12000; // 12 seconds
-const MESSAGE_LIMIT = 21;
+const CACHE_UPDATE_INTERVAL = 21000; // 21 seconds
+const MESSAGE_LIMIT = 30;
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY = 3000; // 3 seconds
 let isInitialized = false;
@@ -165,7 +164,7 @@ const updateCache = async (retryAttempt = 0): Promise<void> => {
         let totalMessageCount = 0;
 
         // Process rooms in smaller batches with delay
-        const BATCH_SIZE = 3;
+        const BATCH_SIZE = 9;
         for (let i = 0; i < rooms.length; i += BATCH_SIZE) {
             const batch = rooms.slice(i, i + BATCH_SIZE);
             
@@ -207,7 +206,6 @@ const updateCache = async (retryAttempt = 0): Promise<void> => {
                         roomCache.set(room.id, {
                             messages: result.messages,
                             messageDeltas: [],
-                            lastCursor: result.messages.length > 0 ? result.messages[result.messages.length - 1].id : '',
                             stats: roomStats,
                             room: {
                                 ...room,
@@ -390,9 +388,8 @@ async function handleConnection(socket: Socket<SocketClientToServerEvents, Socke
                     const cachedMessages = cached.messages.filter(msg => {
                         if (options.before) return msg.timestamp < options.before;
                         if (options.after) return msg.timestamp > options.after;
-                        if (options.cursor) return msg.id > options.cursor;
                         return true;
-                    }).slice(0, options.limit || 50);
+                    }).slice(0, options.limit || 30);
 
                     if (cachedMessages.length > 0) {
                         socket.emit('room:messages', cachedMessages);
@@ -402,7 +399,6 @@ async function handleConnection(socket: Socket<SocketClientToServerEvents, Socke
                 // Then fetch fresh messages from the database
                 const result = await store.getRoomMessages(roomId, {
                     limit: options.limit,
-                    cursor: options.cursor,
                     before: options.before,
                     after: options.after
                 });
@@ -412,7 +408,6 @@ async function handleConnection(socket: Socket<SocketClientToServerEvents, Socke
                     socket.emit('room:messages', result.messages);
                     
                     // Update cache with new messages
-                    cached.lastCursor = result.messages[result.messages.length - 1]?.id;
                     cached.messages = result.messages;
                     cached.lastUpdate = Date.now();
                     roomCache.set(roomId, cached);
@@ -445,7 +440,6 @@ async function handleConnection(socket: Socket<SocketClientToServerEvents, Socke
                     
                     // Update cache with new messages
                     cached.messages = result.messages;
-                    cached.lastCursor = delta.cursor;
                     cached.messageDeltas.push(delta);
                     cached.lastUpdate = Date.now();
                     

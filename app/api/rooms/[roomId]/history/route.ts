@@ -1,19 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getRoomMessages } from "@/server/store";
+import { MessageQueryResult } from "@/server/types";
 
 type RouteContext = {
   params: Promise<{ roomId: string }> | { roomId: string }
 };
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   context: RouteContext
 ) {
   try {
     const { roomId } = await context.params;
     const url = new URL(request.url);
-    const limit = parseInt(url.searchParams.get("limit") || "50");
-    const cursor = url.searchParams.get("cursor"); // timestamp of oldest message
+    const limit = parseInt(url.searchParams.get("limit") || "30");
 
     if (!roomId) {
       return NextResponse.json(
@@ -22,19 +22,17 @@ export async function GET(
       );
     }
 
-    const messages = await getRoomMessages(roomId, { limit, cursor });
-    const hasMore = messages.length === limit;
-    const nextCursor = messages.length > 0 ? messages[messages.length - 1].timestamp : null;
+    const result: MessageQueryResult = await getRoomMessages(roomId, { limit });
+    const hasMore = result.messages.length === limit;
 
     return NextResponse.json({
-      messages,
-      hasMore,
-      nextCursor
+      messages: result.messages,
+      hasMore
     });
   } catch (error) {
-    console.error("Error fetching messages:", error);
+    console.error("Error fetching room messages:", error);
     return NextResponse.json(
-      { error: "Failed to fetch messages" },
+      { error: "Failed to fetch room messages" },
       { status: 500 }
     );
   }

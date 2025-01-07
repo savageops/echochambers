@@ -21,6 +21,18 @@ export function useSocket(options: UseSocketOptions = {}) {
     const reconnectAttemptsRef = useRef(0);
     const messageCache = useRef<Map<string, ChatMessage[]>>(new Map());
     const cursorCache = useRef<Map<string, string>>(new Map());
+    const errorListeners = useRef<Set<(error: { message: string }) => void>>(new Set());
+
+    const onError = useCallback((handler: (error: { message: string }) => void) => {
+        errorListeners.current.add(handler);
+        return () => {
+            errorListeners.current.delete(handler);
+        };
+    }, []);
+
+    const notifyErrorListeners = useCallback((err: { message: string }) => {
+        errorListeners.current.forEach(listener => listener(err));
+    }, []);
 
     const connect = useCallback(() => {
         try {
@@ -48,7 +60,6 @@ export function useSocket(options: UseSocketOptions = {}) {
                     console.log('Socket disconnected:', reason);
                     setIsConnected(false);
                     if (reason === 'io server disconnect') {
-                        // Server initiated disconnect, try reconnecting
                         setTimeout(() => {
                             connect();
                         }, reconnectInterval);
@@ -56,9 +67,11 @@ export function useSocket(options: UseSocketOptions = {}) {
                 });
 
                 socketRef.current.on('connect_error', (err) => {
-                    console.error('Socket connection error:', err.message);
-                    setError(new Error(`Connection failed: ${err.message}`));
+                    const error = { message: `Connection failed: ${err.message}` };
+                    console.error('Socket connection error:', error.message);
+                    setError(new Error(error.message));
                     setIsConnected(false);
+                    notifyErrorListeners(error);
                     
                     if (reconnectAttemptsRef.current < maxReconnectAttempts) {
                         reconnectAttemptsRef.current++;
@@ -73,8 +86,8 @@ export function useSocket(options: UseSocketOptions = {}) {
                 socketRef.current.on('error', (err: { message: string }) => {
                     console.error('Socket error:', err.message);
                     setError(new Error(err.message));
+                    notifyErrorListeners(err);
                     if (!isConnected) {
-                        // If we're not connected and get an error, try reconnecting
                         setTimeout(() => {
                             connect();
                         }, reconnectInterval);
@@ -82,14 +95,17 @@ export function useSocket(options: UseSocketOptions = {}) {
                 });
             }
         } catch (err) {
-            console.error('Failed to initialize socket:', err);
-            setError(err instanceof Error ? err : new Error('Failed to initialize socket'));
-            // Try to reconnect after error
+            const error = { 
+                message: err instanceof Error ? err.message : 'Failed to initialize socket'
+            };
+            console.error('Failed to initialize socket:', error.message);
+            setError(new Error(error.message));
+            notifyErrorListeners(error);
             setTimeout(() => {
                 connect();
             }, reconnectInterval);
         }
-    }, [autoReconnect, reconnectInterval, maxReconnectAttempts]);
+    }, [autoReconnect, reconnectInterval, maxReconnectAttempts, notifyErrorListeners]);
 
     const disconnect = useCallback(() => {
         if (socketRef.current) {
@@ -98,6 +114,7 @@ export function useSocket(options: UseSocketOptions = {}) {
         }
         setIsConnected(false);
         setError(null);
+        errorListeners.current.clear();
     }, []);
 
     const joinRoom = useCallback((roomId: string) => {
@@ -171,6 +188,7 @@ export function useSocket(options: UseSocketOptions = {}) {
                 socketRef.current.disconnect();
                 socketRef.current = null;
             }
+            errorListeners.current.clear();
         };
     }, [connect]);
 
@@ -185,6 +203,7 @@ export function useSocket(options: UseSocketOptions = {}) {
         getMessages,
         syncMessages,
         getGlobalStats,
-        handleMessageDelta
+        handleMessageDelta,
+        onError
     };
 }

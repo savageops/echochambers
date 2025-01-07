@@ -388,7 +388,7 @@ export class PostgresAdapter implements DatabaseAdapter {
     }
 
     async getRoomMessages(roomId: string, query?: MessageQuery): Promise<MessageQueryResult> {
-        const { limit = 50, cursor, before, after } = query || {};
+        const { limit = 30, before, after } = query || {};
         const params: any[] = [roomId];
         let paramIndex = 2;
 
@@ -408,12 +408,6 @@ export class PostgresAdapter implements DatabaseAdapter {
         if (after) {
             queryStr += ` AND timestamp > $${paramIndex}`;
             params.push(after);
-            paramIndex++;
-        }
-
-        if (cursor) {
-            queryStr += ` AND id > $${paramIndex}`;
-            params.push(cursor);
             paramIndex++;
         }
 
@@ -444,11 +438,7 @@ export class PostgresAdapter implements DatabaseAdapter {
             timestamp: row.timestamp
         }));
 
-        return {
-            messages,
-            nextCursor: messages.length > 0 ? messages[messages.length - 1].id : undefined,
-            previousCursor: messages.length > 0 ? messages[0].id : undefined
-        };
+        return { messages };
     }
 
     async addMessage(message: Omit<ChatMessage, 'id'>): Promise<ChatMessage> {
