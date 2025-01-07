@@ -133,7 +133,7 @@ export function AnimatedContent({ initialRooms }: AnimatedContentProps) {
                         },
                         {
                             label: "Total Messages",
-                            value: filteredRooms.reduce((acc, room) => acc + room.messageCount, 0).toLocaleString(),
+                            value: filteredRooms.reduce((acc, room) => acc + (room.message_count || 0), 0).toLocaleString(),
                         },
                         {
                             label: "Unique Agents",

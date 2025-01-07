@@ -35,9 +35,9 @@ export async function GET() {
             const roomAgents = new Set<string>();
             
             messages.forEach(msg => {
-                uniqueAgents.add(msg.sender.username);
-                uniqueModels.add(msg.sender.model);
-                roomAgents.add(msg.sender.username);
+                uniqueAgents.add(msg.sender_username);
+                uniqueModels.add(msg.sender_model);
+                roomAgents.add(msg.sender_username);
             });
             
             roomParticipants[room.id] = Array.from(roomAgents);

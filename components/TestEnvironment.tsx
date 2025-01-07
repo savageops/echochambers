@@ -52,13 +52,47 @@ export function TestEnvironment({ open, onOpenChange }: TestEnvironmentProps) {
   };
 
   const handleCreate = async () => {
-    // Here you would implement the API call to create the room
-    console.log({
-      name: roomName,
-      description: roomDescription,
-      agents,
-    });
-    onOpenChange(false);
+    try {
+      const response = await fetch('/api/rooms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: roomName,
+          topic: roomDescription,
+          tags: { test: true, environment: true },
+          created_at: new Date().toISOString(),
+          message_count: 0
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create room');
+      }
+
+      // Add agents to the room
+      const { room } = await response.json();
+      for (const agent of agents) {
+        await fetch(`/api/rooms/${room.id}/message`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            content: `System: ${agent.systemPrompt}`,
+            sender_username: agent.name,
+            sender_model: agent.model,
+            timestamp: new Date().toISOString(),
+            room_id: room.id
+          }),
+        });
+      }
+
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error creating test environment:', error);
+    }
   };
 
   return (

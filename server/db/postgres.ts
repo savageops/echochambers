@@ -6,8 +6,10 @@ export class PostgresAdapter implements DatabaseAdapter {
   private pool: Pool | null = null;
   
   async initialize(): Promise<void> {
+    const dbUrl = process.env.DATABASE_URL!;
     this.pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: dbUrl,
+      max: 10,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
     });
     
@@ -40,156 +42,145 @@ export class PostgresAdapter implements DatabaseAdapter {
   }
   
   async createRoom(room: Omit<ChatRoom, 'id'>): Promise<ChatRoom> {
-    const client = await this.pool!.connect();
-    try {
-      await client.query('BEGIN');
-      
-      const id = room.name.toLowerCase().replace('#', '') || crypto.randomUUID();
-      await client.query(
-        `INSERT INTO rooms (id, name, topic, tags, created_at, message_count)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          id,
-          room.name,
-          room.topic,
-          JSON.stringify(room.tags),
-          new Date().toISOString(),
-          0
-        ]
-      );
-      
-      // Add initial participants if any
-      if (room.participants?.length) {
-        const participantValues = room.participants
-          .map((p, i) => `($1, $${i*2 + 2}, $${i*2 + 3})`)
-          .join(',');
-        
-        const participantParams = room.participants.flatMap(p => [p.username, p.model]);
-        
-        await client.query(
-          `INSERT INTO participants (room_id, username, model) VALUES ${participantValues}`,
-          [id, ...participantParams]
-        );
-      }
-      
-      await client.query('COMMIT');
-      return this.getRoom(id) as Promise<ChatRoom>;
-      
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    const id = room.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    const tagsObject = Array.isArray(room.tags) 
+      ? room.tags.reduce((obj: { [key: string]: boolean }, tag: string) => {
+          obj[tag] = true;
+          return obj;
+        }, {})
+      : room.tags;
+
+    const result = await this.pool!.query(
+      `INSERT INTO rooms (id, name, topic, tags, created_at, message_count)
+       VALUES ($1, $2, $3, $4::jsonb, $5, $6)
+       RETURNING *`,
+      [
+        id,
+        room.name,
+        room.topic,
+        tagsObject,
+        room.created_at,
+        room.message_count || 0
+      ]
+    );
+
+    return {
+      id: result.rows[0].id,
+      name: result.rows[0].name,
+      topic: result.rows[0].topic,
+      tags: result.rows[0].tags,
+      created_at: result.rows[0].created_at,
+      message_count: result.rows[0].message_count
+    };
   }
   
+  async listRooms(tags?: string[]): Promise<ChatRoom[]> {
+    let query = 'SELECT * FROM rooms';
+    const params: any[] = [];
+
+    if (tags && tags.length > 0) {
+      // Create conditions for each tag to check if it exists as a key in the tags JSONB
+      const conditions = tags.map((_, i) => `tags::jsonb ? $${i + 1}`).join(' OR ');
+      query += ` WHERE ${conditions}`;
+      params.push(...tags);
+    }
+
+    query += ' ORDER BY created_at DESC';
+    const result = await this.pool!.query(query, params);
+    
+    return result.rows.map(room => ({
+      id: room.id,
+      name: room.name,
+      topic: room.topic,
+      tags: room.tags,
+      created_at: room.created_at,
+      message_count: room.message_count
+    }));
+  }
+
   async getRoom(roomId: string): Promise<ChatRoom | null> {
-    const { rows: [room] } = await this.pool!.query(
-      `SELECT r.*,
-        json_agg(json_build_object('username', p.username, 'model', p.model)) as participants
-       FROM rooms r
-       LEFT JOIN participants p ON r.id = p.room_id
-       WHERE r.id = $1
-       GROUP BY r.id`,
+    const result = await this.pool!.query(
+      'SELECT * FROM rooms WHERE id = $1',
       [roomId]
     );
     
-    if (!room) return null;
+    if (result.rows.length === 0) {
+      return null;
+    }
     
+    const room = result.rows[0];
     return {
       id: room.id,
       name: room.name,
       topic: room.topic,
       tags: room.tags,
-      participants: room.participants.filter((p: any) => p.username),
-      createdAt: room.created_at,
-      messageCount: room.message_count
+      created_at: room.created_at,
+      message_count: room.message_count
     };
   }
-  
+
   async updateRoom(roomId: string, room: Partial<ChatRoom>): Promise<ChatRoom> {
     const updates: string[] = [];
-    const values: any[] = [roomId];
-    let paramCount = 2;
-    
-    if (room.name) {
+    const values: any[] = [];
+    let paramCount = 1;
+
+    if (room.name !== undefined) {
       updates.push(`name = $${paramCount}`);
       values.push(room.name);
       paramCount++;
     }
-    if (room.topic) {
+    if (room.topic !== undefined) {
       updates.push(`topic = $${paramCount}`);
       values.push(room.topic);
       paramCount++;
     }
-    if (room.tags) {
-      updates.push(`tags = $${paramCount}`);
-      values.push(JSON.stringify(room.tags));
+    if (room.tags !== undefined) {
+      updates.push(`tags = $${paramCount}::jsonb`);
+      values.push(room.tags);
       paramCount++;
     }
-    
-    if (updates.length > 0) {
-      await this.pool!.query(
-        `UPDATE rooms SET ${updates.join(', ')} WHERE id = $1`,
-        values
-      );
+    if (room.message_count !== undefined) {
+      updates.push(`message_count = $${paramCount}`);
+      values.push(room.message_count);
+      paramCount++;
     }
-    
-    return this.getRoom(roomId) as Promise<ChatRoom>;
+
+    values.push(roomId);
+    const result = await this.pool!.query(
+      `UPDATE rooms 
+       SET ${updates.join(', ')} 
+       WHERE id = $${paramCount}
+       RETURNING *`,
+      values
+    );
+
+    const updatedRoom = result.rows[0];
+    return {
+      id: updatedRoom.id,
+      name: updatedRoom.name,
+      topic: updatedRoom.topic,
+      tags: updatedRoom.tags,
+      created_at: updatedRoom.created_at,
+      message_count: updatedRoom.message_count
+    };
   }
 
-  async listRooms(tags?: string[]): Promise<ChatRoom[]> {
-    let query = `
-      SELECT r.*,
-        json_agg(json_build_object('username', p.username, 'model', p.model)) as participants
-      FROM rooms r
-      LEFT JOIN participants p ON r.id = p.room_id
-      GROUP BY r.id
-    `;
+  async searchRooms(query: string): Promise<ChatRoom[]> {
+    const result = await this.pool!.query(
+      `SELECT * FROM rooms 
+       WHERE name ILIKE $1 OR topic ILIKE $1 
+       ORDER BY created_at DESC`,
+      [`%${query}%`]
+    );
     
-    if (tags?.length) {
-      query += ` HAVING r.tags ?| $1`;
-      const { rows } = await this.pool!.query(query, [tags]);
-      return this.mapRoomsFromRows(rows);
-    } else {
-      const { rows } = await this.pool!.query(query);
-      return this.mapRoomsFromRows(rows);
-    }
-  }
-
-  async addMessage(message: Omit<ChatMessage, 'id'>): Promise<ChatMessage> {
-    const client = await this.pool!.connect();
-    try {
-      await client.query('BEGIN');
-      
-      const id = crypto.randomUUID();
-      await client.query(
-        `INSERT INTO messages (id, room_id, content, sender_username, sender_model, timestamp)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          id,
-          message.roomId,
-          message.content,
-          message.sender.username,
-          message.sender.model,
-          message.timestamp
-        ]
-      );
-      
-      await client.query(
-        `UPDATE rooms SET message_count = message_count + 1 WHERE id = $1`,
-        [message.roomId]
-      );
-      
-      await client.query('COMMIT');
-      return { ...message, id };
-      
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    return result.rows.map(room => ({
+      id: room.id,
+      name: room.name,
+      topic: room.topic,
+      tags: room.tags,
+      created_at: room.created_at,
+      message_count: room.message_count
+    }));
   }
 
   async getRoomMessages(roomId: string, limit = 50): Promise<ChatMessage[]> {
@@ -203,13 +194,57 @@ export class PostgresAdapter implements DatabaseAdapter {
     
     return rows.map(msg => ({
       id: msg.id,
+      room_id: msg.room_id,
       content: msg.content,
-      sender: {
-        username: msg.sender_username,
-        model: msg.sender_model
-      },
-      timestamp: msg.timestamp,
-      roomId: msg.room_id
+      sender_username: msg.sender_username,
+      sender_model: msg.sender_model,
+      timestamp: msg.timestamp
+    }));
+  }
+
+  async addMessage(message: Omit<ChatMessage, 'id'>): Promise<ChatMessage> {
+    const result = await this.pool!.query(
+      `INSERT INTO messages (id, room_id, content, sender_username, sender_model, timestamp)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [
+        crypto.randomUUID(),
+        message.room_id,
+        message.content,
+        message.sender_username,
+        message.sender_model,
+        message.timestamp || new Date().toISOString()
+      ]
+    );
+
+    // Update message count
+    await this.pool!.query(
+      `UPDATE rooms 
+       SET message_count = message_count + 1 
+       WHERE id = $1`,
+      [message.room_id]
+    );
+
+    return {
+      id: result.rows[0].id,
+      room_id: result.rows[0].room_id,
+      content: result.rows[0].content,
+      sender_username: result.rows[0].sender_username,
+      sender_model: result.rows[0].sender_model,
+      timestamp: result.rows[0].timestamp
+    };
+  }
+
+  async getRoomParticipants(roomId: string): Promise<ModelInfo[]> {
+    const result = await this.pool!.query(
+      `SELECT username, model FROM participants 
+       WHERE room_id = $1`,
+      [roomId]
+    );
+    
+    return result.rows.map(p => ({
+      username: p.username,
+      model: p.model
     }));
   }
 
@@ -217,42 +252,30 @@ export class PostgresAdapter implements DatabaseAdapter {
     await this.pool!.query(
       `INSERT INTO participants (room_id, username, model)
        VALUES ($1, $2, $3)
-       ON CONFLICT (room_id, username) DO UPDATE SET model = $3`,
+       ON CONFLICT (room_id, username) DO UPDATE SET model = EXCLUDED.model`,
       [roomId, participant.username, participant.model]
     );
   }
 
   async removeParticipant(roomId: string, username: string): Promise<void> {
     await this.pool!.query(
-      `DELETE FROM participants WHERE room_id = $1 AND username = $2`,
+      `DELETE FROM participants 
+       WHERE room_id = $1 AND username = $2`,
       [roomId, username]
     );
   }
 
   async clearMessages(roomId: string): Promise<void> {
-    const client = await this.pool!.connect();
-    try {
-      await client.query('BEGIN');
-      
-      // Delete all messages for the room
-      await client.query(
-        'DELETE FROM messages WHERE room_id = $1',
-        [roomId]
-      );
-      
-      // Reset message count
-      await client.query(
-        'UPDATE rooms SET message_count = 0 WHERE id = $1',
-        [roomId]
-      );
-      
-      await client.query('COMMIT');
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    await this.pool!.query(
+      `DELETE FROM messages WHERE room_id = $1`,
+      [roomId]
+    );
+
+    // Reset message count
+    await this.pool!.query(
+      `UPDATE rooms SET message_count = 0 WHERE id = $1`,
+      [roomId]
+    );
   }
 
   private mapRoomsFromRows(rows: any[]): ChatRoom[] {
@@ -262,12 +285,12 @@ export class PostgresAdapter implements DatabaseAdapter {
       topic: row.topic,
       tags: row.tags,
       participants: row.participants.filter((p: any) => p.username),
-      createdAt: row.created_at,
-      messageCount: row.message_count
+      created_at: row.created_at,
+      message_count: row.message_count
     }));
   }
 
   async close(): Promise<void> {
     await this.pool?.end();
   }
-} 
+}

@@ -46,7 +46,7 @@ export function RoomGrid({ initialRooms, roomParticipants }: RoomGridProps) {
     };
 
     // Sort rooms by message count
-    const sortedRooms = [...initialRooms].sort((a, b) => b.messageCount - a.messageCount);
+    const sortedRooms = [...initialRooms].sort((a, b) => b.message_count - a.message_count);
 
     if (fullscreenRoom) {
         const room = sortedRooms.find((r) => r.id === fullscreenRoom);
@@ -74,11 +74,11 @@ export function RoomGrid({ initialRooms, roomParticipants }: RoomGridProps) {
                                     <Separator orientation="vertical" className="h-4 shrink-0" />
                                     <div className="flex items-center gap-1.5">
                                         <MessageSquare className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                        <span className="font-medium break-all whitespace-pre-wrap">{room.messageCount} messages</span>
+                                        <span className="font-medium break-all whitespace-pre-wrap">{room.message_count} messages</span>
                                     </div>
                                 </div>
                                 <div className="flex flex-wrap gap-1.5">
-                                    {room.tags.map((tag) => (
+                                    {Object.keys(room.tags || {}).map((tag) => (
                                         <Badge key={tag} variant="outline" className="bg-background/50 break-all whitespace-pre-wrap">
                                             {tag}
                                         </Badge>
@@ -176,7 +176,7 @@ export function RoomGrid({ initialRooms, roomParticipants }: RoomGridProps) {
                                 </div>
                                 <p className="text-sm text-muted-foreground mb-2 break-all whitespace-pre-wrap overflow-hidden">{room.topic}</p>
                                 <div className="flex flex-wrap gap-1 mb-2">
-                                    {room.tags.map((tag) => (
+                                    {Object.keys(room.tags || {}).map((tag) => (
                                         <Badge key={tag} variant="outline" className="bg-background/90 px-2 py-2 break-all whitespace-pre-wrap">
                                             {tag}
                                         </Badge>
@@ -190,7 +190,7 @@ export function RoomGrid({ initialRooms, roomParticipants }: RoomGridProps) {
                                     <Separator orientation="vertical" className="h-4 shrink-0" />
                                     <div className="flex items-center gap-1.5">
                                         <MessageSquare className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                        <span className="font-medium break-all whitespace-pre-wrap">{room.messageCount} messages</span>
+                                        <span className="font-medium break-all whitespace-pre-wrap">{room.message_count} messages</span>
                                     </div>
                                 </div>
                             </div>
@@ -212,7 +212,7 @@ export function RoomGrid({ initialRooms, roomParticipants }: RoomGridProps) {
                                     </div>
                                     <p className="text-sm text-muted-foreground mb-2 break-all whitespace-pre-wrap overflow-hidden">{room.topic}</p>
                                     <div className="flex flex-wrap gap-1 mb-2">
-                                        {room.tags.map((tag) => (
+                                        {Object.keys(room.tags || {}).map((tag) => (
                                             <Badge key={tag} variant="outline" className="bg-background/90 px-2 py-2 break-all whitespace-pre-wrap">
                                                 {tag}
                                             </Badge>
@@ -226,7 +226,7 @@ export function RoomGrid({ initialRooms, roomParticipants }: RoomGridProps) {
                                         <Separator orientation="vertical" className="h-4 shrink-0" />
                                         <div className="flex items-center gap-1.5">
                                             <MessageSquare className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                            <span className="font-medium break-all whitespace-pre-wrap">{room.messageCount} messages</span>
+                                            <span className="font-medium break-all whitespace-pre-wrap">{room.message_count} messages</span>
                                         </div>
                                     </div>
                                 </div>

@@ -89,9 +89,9 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
                     {initialMessages.map((message) => (
                         <div key={message.id} className="space-y-1">
                             <div className="flex items-center space-x-1">
-                                <p className="text-xs font-medium font-mono">{message.sender.username}</p>
+                                <p className="text-xs font-medium font-mono">{message.sender_username}</p>
                                 <Badge variant="outline" className="text-[10px]">
-                                    {message.sender.model}
+                                    {message.sender_model}
                                 </Badge>
                                 <span className="text-[10px] text-muted-foreground">{formatTimestamp(message.timestamp)}</span>
                             </div>
@@ -180,9 +180,9 @@ export function ChatWindow({ roomId, initialMessages = [] }: ChatWindowProps) {
                 {messages.map((message) => (
                     <div key={message.id} className="space-y-1">
                         <div className="flex items-center space-x-1">
-                            <p className="text-xs font-medium font-mono">{message.sender.username}</p>
-                            <Badge variant="outline" className="text-[10px] px-1">
-                                {message.sender.model}
+                            <p className="text-xs font-medium font-mono">{message.sender_username}</p>
+                            <Badge variant="outline" className="text-[10px]">
+                                {message.sender_model}
                             </Badge>
                             <span className="text-[10px] text-muted-foreground">{formatTimestamp(message.timestamp)}</span>
                         </div>
