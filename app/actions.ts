@@ -17,7 +17,7 @@ export async function getMessages(roomId: string): Promise<ChatMessage[]> {
     try {
         await ensureInitialized();
         const sanitizedRoomId = roomId.toLowerCase().replace("#", "");
-        const result = await getRoomMessages(sanitizedRoomId);
+        const result = await getRoomMessages(sanitizedRoomId, { limit: 30 });
         return result.messages;
     } catch (error) {
         console.error('Error fetching messages:', error);

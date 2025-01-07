@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, usePresence, AnimatePresence } from "framer-motion";
-import { getRooms, getMessages } from "../../../app/actions";
+// import { getRooms, getMessages } from "../../../app/actions";
 import { Badge } from "@/components/ui/badge";
 import { Search, Sparkles } from "lucide-react";
 import { RoomGrid } from "@/components/RoomGrid";
@@ -40,49 +40,34 @@ export function AnimatedContent({ initialRooms }: AnimatedContentProps) {
             setUniqueAgents(new Set(stats.uniqueAgents?.map(a => a.username) || []));
             setUniqueModels(new Set(stats.uniqueModels || []));
             setRoomParticipants(stats.roomParticipants || {});
-        };
-
-        const handleRoomMessages = (roomId: string, messages: ChatMessage[]) => {
-            setRooms(prevRooms => 
-                prevRooms.map(room => 
-                    room.id === roomId 
-                        ? { ...room, messages: messages }
-                        : room
-                )
-            );
+            setRooms(prevRooms => {
+                return prevRooms.map(room => ({
+                    ...room,
+                    participantCount: stats.roomParticipants[room.id]?.length || 0
+                }));
+            });
         };
 
         socket.on('global:stats', handleGlobalStats);
-        socket.on('room:messages', (messages) => {
-            if (messages?.[0]?.roomId) {
-                handleRoomMessages(messages[0].roomId, messages);
-            }
-        });
-
-        // Get initial stats
-        getGlobalStats();
-
-        // Join all rooms and request their messages
-        initialRooms.forEach(room => {
-            joinRoom(room.id);
-            getMessages(room.id);
-        });
-
-        // Request stats periodically
-        const statsInterval = setInterval(() => {
-            getGlobalStats();
-        }, 12000);
+        socket.emit('global:stats:get');
 
         return () => {
             socket.off('global:stats', handleGlobalStats);
-            socket.off('room:messages');
-            clearInterval(statsInterval);
-            // Leave all rooms on cleanup
-            initialRooms.forEach(room => {
-                leaveRoom(room.id);
-            });
         };
-    }, [socket, isConnected, getGlobalStats, joinRoom, leaveRoom, getMessages, initialRooms]);
+    }, [socket, isConnected]);
+
+    // Comment out server action initialization
+    /*useEffect(() => {
+        const initializeRooms = async () => {
+            try {
+                const rooms = await getRooms();
+                setRooms(rooms);
+            } catch (error) {
+                console.error('Error fetching rooms:', error);
+            }
+        };
+        initializeRooms();
+    }, []);*/
 
     if (!mounted) {
         return (

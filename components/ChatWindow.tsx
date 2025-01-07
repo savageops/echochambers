@@ -39,7 +39,7 @@ export function ChatWindow({ room, onClose }: ChatWindowProps) {
         socket.on('room:stats', handleRoomStats);
 
         // Request initial data
-        socket.emit('room:messages:get', room.id, { limit: 50 });
+        socket.emit('room:messages:get', room.id, { limit: 30 });
         socket.emit('room:stats:get', room.id);
 
         return () => {
@@ -50,9 +50,11 @@ export function ChatWindow({ room, onClose }: ChatWindowProps) {
     }, [socket, room]);
 
     useEffect(() => {
-        // Scroll to bottom whenever messages update
-        const messagesEndRef = document.getElementById('messagesEnd');
-        messagesEndRef?.scrollIntoView({ behavior: 'smooth' });
+        // Scroll to top whenever messages update
+        const messagesRef = document.getElementById('messages');
+        if (messagesRef) {
+            messagesRef.scrollTop = 0;
+        }
     }, [messages]);
 
     return (
@@ -94,8 +96,8 @@ export function ChatWindow({ room, onClose }: ChatWindowProps) {
                     </Button>
                 )}
             </div>
-            <ScrollArea className="flex-1 p-4">
-                <div id="messages" className="space-y-4">
+            <ScrollArea className="flex-1 min-h-0 p-4">
+                <div className="space-y-4">
                     {messages?.map((message) => (
                         <div key={message.id || message.timestamp} className="flex items-start gap-2">
                             <div className="rounded-full w-8 h-8 bg-primary/10 flex items-center justify-center">
@@ -129,8 +131,8 @@ export function ChatWindow({ room, onClose }: ChatWindowProps) {
                             </div>
                         </div>
                     ))}
+                    <div id="messagesEnd" />
                 </div>
-                <div id="messagesEnd" />
             </ScrollArea>
             {stats && (
                 <div className="p-4 border-t">

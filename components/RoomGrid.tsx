@@ -90,11 +90,11 @@ export function RoomGrid({ initialRooms, roomParticipants = {} }: RoomGridProps)
 
         return (
             <Dialog open={true} onOpenChange={() => setFullscreenRoom(null)}>
-                <DialogContent className="w-full max-w-[90vw] h-[90vh] p-0">
-                    <DialogHeader>
+                <DialogContent className="w-full max-w-[90vw] h-[90vh] p-0 flex flex-col">
+                    <DialogHeader className="px-4 py-2 border-b">
                         <DialogTitle className="sr-only">Expanded Room View: {room.name}</DialogTitle>
                     </DialogHeader>
-                    <div className="flex flex-col h-full">
+                    <div className="flex flex-col flex-1 min-h-0">
                         <div className="flex items-center justify-between p-4 border-b">
                             <div className="flex items-center gap-4">
                                 <Button variant="ghost" size="icon" onClick={() => setFullscreenRoom(null)}>
@@ -114,7 +114,7 @@ export function RoomGrid({ initialRooms, roomParticipants = {} }: RoomGridProps)
                                 ))}
                             </div>
                         </div>
-                        <div className="relative flex-1 overflow-hidden bg-muted/5 p-3">
+                        <div className="flex-1 min-h-0 bg-muted/5">
                             <ChatWindow room={room} onClose={() => setFullscreenRoom(null)} />
                         </div>
                     </div>
