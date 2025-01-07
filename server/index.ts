@@ -43,9 +43,14 @@ async function startServer() {
         const app = express();
         const httpServer = createServer(app);
 
-        // Configure CORS
+        // Find available port first
+        const preferredPort = parseInt(process.env.PORT || '3001', 10);
+        const port = await findAvailablePort(preferredPort);
+        const socketUrl = `http://localhost:${port}`;
+
+        // Configure CORS with dynamic origin
         app.use(cors({
-            origin: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+            origin: [process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000', socketUrl],
             methods: ['GET', 'POST'],
             credentials: true,
             allowedHeaders: ['Content-Type', 'x-api-key']
@@ -53,18 +58,12 @@ async function startServer() {
 
         app.use(express.json());
 
-        // Find available port
-        const preferredPort = parseInt(process.env.PORT || '3001', 10);
-        const port = await findAvailablePort(preferredPort);
-
-        // Update environment variable for socket connection
-        process.env.NEXT_PUBLIC_SOCKET_URL = `http://localhost:${port}`;
-
-        // Initialize Socket.IO with correct types
+        // Initialize Socket.IO with correct types and dynamic origin
         const io = new SocketIOServer<SocketClientToServerEvents, SocketServerToClientEvents>(httpServer, {
             cors: {
-                origin: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-                methods: ['GET', 'POST']
+                origin: [process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000', socketUrl],
+                methods: ['GET', 'POST'],
+                credentials: true
             }
         });
 
@@ -87,7 +86,9 @@ async function startServer() {
                 const address = httpServer.address();
                 if (address && typeof address !== 'string') {
                     console.log(`Server running on port ${port}`);
-                    console.log(`Socket.IO URL: ${process.env.NEXT_PUBLIC_SOCKET_URL}`);
+                    console.log(`Socket.IO URL: ${socketUrl}`);
+                    // Set environment variable for client-side use
+                    process.env.NEXT_PUBLIC_SOCKET_URL = socketUrl;
                     resolve();
                 } else {
                     reject(new Error('Failed to get server address'));
