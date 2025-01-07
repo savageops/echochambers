@@ -1,4 +1,4 @@
-import { Pool, PoolClient } from 'pg';
+import { Pool, PoolClient, QueryConfig } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
 import { DatabaseAdapter } from './types';
 import { ChatMessage, ChatRoom, ModelInfo, MessageQuery } from '../types';
@@ -8,7 +8,7 @@ const RETRY_DELAY = 1000; // 1 second
 
 export class PostgresAdapter implements DatabaseAdapter {
     private pool: Pool;
-    private initialized: boolean = false;
+    private isInitialized: boolean = false;
     private messageCache: Map<string, { messages: ChatMessage[], timestamp: number }> = new Map();
     private readonly CACHE_TTL = 5000; // 5 seconds cache TTL
     private readonly BATCH_SIZE = 100;
@@ -20,17 +20,12 @@ export class PostgresAdapter implements DatabaseAdapter {
 
         this.pool = new Pool({
             connectionString,
-            max: 20,
-            idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 2000,
-            ssl: process.env.NODE_ENV === 'production' 
-                ? { rejectUnauthorized: false } 
-                : undefined,
-            statement_timeout: 10000,
-            query_timeout: 10000,
-            application_name: 'echochambers',
-            keepAlive: true,
-            keepAliveInitialDelayMillis: 10000
+            ssl: process.env.NODE_ENV === 'production' ? {
+                rejectUnauthorized: false
+            } : undefined,
+            max: 20, // Maximum number of clients in the pool
+            idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+            connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
         });
 
         // Enable performance optimizations
@@ -47,7 +42,14 @@ export class PostgresAdapter implements DatabaseAdapter {
                 SET SESSION max_parallel_workers_per_gather = 4;
                 SET SESSION parallel_tuple_cost = 0.1;
                 SET SESSION parallel_setup_cost = 100;
+                SET statement_timeout = '30s';
+                SET lock_timeout = '10s';
             `);
+        });
+
+        // Error handling for the pool
+        this.pool.on('error', (err, client) => {
+            console.error('Unexpected error on idle client', err);
         });
 
         // Periodically clean up expired cache entries
@@ -61,38 +63,37 @@ export class PostgresAdapter implements DatabaseAdapter {
         }, this.CACHE_TTL);
     }
 
-    private getCacheKey(roomId: string, query: MessageQuery): string {
-        return `${roomId}:${query.limit || ''}:${query.cursor || ''}:${query.order || ''}`;
-    }
-
     private async withRetry<T>(operation: (client: PoolClient) => Promise<T>): Promise<T> {
         let lastError: Error | null = null;
         let client: PoolClient | null = null;
-        
+
         for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt++) {
             try {
                 if (!client) {
                     client = await this.pool.connect();
                 }
-                return await operation(client);
-            } catch (error) {
-                lastError = error as Error;
-                if (this.isDeadlockError(error) && attempt < RETRY_ATTEMPTS) {
-                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * attempt));
-                    if (client) {
-                        client.release();
-                        client = null;
-                    }
+                const result = await operation(client);
+                client.release();
+                return result;
+            } catch (error: any) {
+                if (client) {
+                    client.release(error);
+                    client = null;
+                }
+                
+                lastError = error;
+                
+                // Check if we should retry
+                if (error.code === '53300' && attempt < RETRY_ATTEMPTS) { // Too many connections
+                    console.log(`Attempt ${attempt} failed, retrying in ${RETRY_DELAY}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
                     continue;
                 }
+                
                 throw error;
-            } finally {
-                if (client) {
-                    client.release();
-                }
             }
         }
-        
+
         throw lastError || new Error('Operation failed after retries');
     }
 
@@ -177,7 +178,7 @@ export class PostgresAdapter implements DatabaseAdapter {
     }
 
     async initialize(): Promise<void> {
-        if (this.initialized) {
+        if (this.isInitialized) {
             return;
         }
 
@@ -198,7 +199,7 @@ export class PostgresAdapter implements DatabaseAdapter {
 
             // If schema exists, we can skip initialization
             if (schema_exists) {
-                this.initialized = true;
+                this.isInitialized = true;
                 return;
             }
 
@@ -223,7 +224,7 @@ export class PostgresAdapter implements DatabaseAdapter {
             }
         });
 
-        this.initialized = true;
+        this.isInitialized = true;
     }
 
     async close(): Promise<void> {
@@ -414,53 +415,57 @@ export class PostgresAdapter implements DatabaseAdapter {
     }
 
     async getRoomMessages(roomId: string, query: MessageQuery = {}): Promise<ChatMessage[]> {
-        const { limit = 21, cursor = null, order = 'desc' } = query;
+        const { limit = 50 } = query;
         const cacheKey = this.getCacheKey(roomId, query);
-        
+
         // Check cache first
         const cached = this.messageCache.get(cacheKey);
         if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
             return cached.messages;
         }
 
-        return await this.withRetry(async (client) => {
-            const params: any[] = [roomId, limit];
-            let cursorClause = '';
+        return this.withRetry(async (client) => {
+            try {
+                // Use a more efficient query
+                const queryConfig: QueryConfig = {
+                    text: `
+                        SELECT m.id, m.content, m.sender_username, m.sender_model, m.timestamp, m.room_id
+                        FROM messages m
+                        WHERE m.room_id = $1
+                        ORDER BY m.timestamp DESC
+                        LIMIT $2;
+                    `,
+                    values: [roomId, limit],
+                    name: 'get_room_messages',
+                };
 
-            if (cursor) {
-                params.push(cursor);
-                cursorClause = order === 'desc'
-                    ? 'AND m.timestamp < $3'
-                    : 'AND m.timestamp > $3';
+                const result = await client.query(queryConfig);
+
+                const messages = result.rows.map(row => ({
+                    id: row.id,
+                    content: row.content,
+                    sender: {
+                        username: row.sender_username,
+                        model: row.sender_model
+                    },
+                    timestamp: row.timestamp,
+                    roomId: row.room_id
+                }));
+
+                // Cache the results
+                this.messageCache.set(cacheKey, {
+                    messages,
+                    timestamp: Date.now()
+                });
+
+                return messages;
+            } catch (error: any) {
+                console.error('Error fetching messages:', error);
+                if (error.code === '57014' || error.message.includes('timeout')) {
+                    throw new Error('Query timed out. Please try again.');
+                }
+                throw error;
             }
-
-            // Always order by timestamp DESC to show newest messages first
-            const result = await client.query(`
-                SELECT m.id, m.content, m.sender_username, m.sender_model, m.timestamp, m.room_id
-                FROM messages m
-                WHERE m.room_id = $1 ${cursorClause}
-                ORDER BY m.timestamp DESC
-                LIMIT $2;
-            `, params);
-
-            const messages = result.rows.map(row => ({
-                id: row.id,
-                content: row.content,
-                sender: {
-                    username: row.sender_username,
-                    model: row.sender_model
-                },
-                timestamp: row.timestamp,
-                roomId: row.room_id
-            }));
-
-            // Cache the results
-            this.messageCache.set(cacheKey, {
-                messages,
-                timestamp: Date.now()
-            });
-
-            return messages;
         });
     }
 
@@ -540,6 +545,10 @@ export class PostgresAdapter implements DatabaseAdapter {
         } finally {
             client.release();
         }
+    }
+
+    private getCacheKey(roomId: string, query: MessageQuery): string {
+        return `${roomId}:${query.limit || ''}`;
     }
 
     private mapRoomsFromRows(rows: any[]): ChatRoom[] {

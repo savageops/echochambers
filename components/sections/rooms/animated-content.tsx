@@ -2,13 +2,13 @@
 
 import { motion, usePresence, AnimatePresence } from "framer-motion";
 import { getRooms, getMessages } from "../../../app/actions";
-
 import { Badge } from "@/components/ui/badge";
 import { Search, Sparkles } from "lucide-react";
 import { RoomGrid } from "@/components/RoomGrid";
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { ChatMessage, ChatRoom } from "@/server/types";
+import { ChatMessage, ChatRoom, GlobalStats, ModelInfo } from "@/server/types";
+import { useSocket } from "@/hooks/useSocket";
 
 interface AnimatedContentProps {
     initialRooms: (ChatRoom & { messages: ChatMessage[] })[];
@@ -16,54 +16,52 @@ interface AnimatedContentProps {
 
 export function AnimatedContent({ initialRooms }: AnimatedContentProps) {
     const [mounted, setMounted] = useState(false);
+    const [searchText, setSearchText] = useState("");
     const [rooms, setRooms] = useState<(ChatRoom & { messages: ChatMessage[] })[]>(initialRooms);
     const [uniqueAgents, setUniqueAgents] = useState(new Set<string>());
     const [uniqueModels, setUniqueModels] = useState(new Set<string>());
-    const [roomParticipants, setRoomParticipants] = useState<Record<string, string[]>>({});
-    const [searchText, setSearchText] = useState("");
+    const [roomParticipants, setRoomParticipants] = useState<Record<string, ModelInfo[]>>({});
+    const { socket, getGlobalStats } = useSocket();
 
     const filteredRooms = rooms.filter((room) => room.name.toLowerCase().includes(searchText.toLowerCase()));
 
-    const fetchRoomsAndStats = async () => {
-        try {
-            // Fetch rooms and stats in parallel
-            const [roomsResponse, statsResponse] = await Promise.all([
-                getRooms(),
-                fetch('/api/rooms/stats').then(res => res.json())
-            ]);
-
-            // Add empty messages array to each room
-            const roomsWithMessages = roomsResponse.map(room => ({
-                ...room,
-                messages: []
-            })) as (ChatRoom & { messages: ChatMessage[] })[];
-
-            setRooms(roomsWithMessages);
-
-            if (!statsResponse.error) {
-                setUniqueAgents(new Set(statsResponse.uniqueAgents));
-                setUniqueModels(new Set(statsResponse.uniqueModels));
-                setRoomParticipants(statsResponse.roomParticipants || {});
-            }
-        } catch (error) {
-            console.error('Error fetching rooms and stats:', error);
-        }
-    };
-
     useEffect(() => {
         setMounted(true);
-    }, []);
+        setRooms(initialRooms);
+    }, [initialRooms]);
 
     useEffect(() => {
-        // Initial fetch
-        fetchRoomsAndStats();
+        if (!socket) return;
 
-        // Set up polling every 5 seconds
-        const intervalId = setInterval(fetchRoomsAndStats, 5000);
+        const handleGlobalStats = (stats: GlobalStats) => {
+            setUniqueAgents(new Set(stats.uniqueAgents.map(a => a.username)));
+            setUniqueModels(new Set(stats.uniqueModels));
+            setRoomParticipants(stats.roomParticipants);
+        };
 
-        // Cleanup interval on component unmount
-        return () => clearInterval(intervalId);
-    }, []);
+        const handleRoomUpdate = (room: ChatRoom & { participantCount: number }) => {
+            setRooms(prevRooms => 
+                prevRooms.map(r => r.id === room.id ? { ...r, participantCount: room.participantCount } : r)
+            );
+        };
+
+        socket.on('global:stats', handleGlobalStats);
+        socket.on('room:update', handleRoomUpdate);
+
+        // Request initial stats
+        getGlobalStats();
+
+        // Request stats periodically
+        const statsInterval = setInterval(() => {
+            getGlobalStats();
+        }, 5000);
+
+        return () => {
+            socket.off('global:stats', handleGlobalStats);
+            socket.off('room:update', handleRoomUpdate);
+            clearInterval(statsInterval);
+        };
+    }, [socket, getGlobalStats]);
 
     if (!mounted) {
         return (
@@ -155,11 +153,16 @@ export function AnimatedContent({ initialRooms }: AnimatedContentProps) {
                 </motion.div>
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="relative w-full md:w-72 mt-8 mb-4 mx-auto">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
-                    <Input placeholder="Search environments..." className="pl-9 w-full" value={searchText} onChange={(e) => setSearchText(e.target.value)} />
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search environments..."
+                        className="pl-8"
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                    />
                 </motion.div>
 
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }}>
                     <RoomGrid 
                         initialRooms={filteredRooms}
                         roomParticipants={roomParticipants}

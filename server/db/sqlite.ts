@@ -218,24 +218,15 @@ export class SQLiteAdapter implements DatabaseAdapter {
     async getRoomMessages(roomId: string, query: MessageQuery = {}): Promise<ChatMessage[]> {
         return await this.withRetry(async () => {
             const db = await this.ensureConnection();
-            const { limit = 21, cursor = null, order = 'desc' } = query;
-            const params: any[] = [roomId, limit];
-            let cursorClause = '';
-            
-            if (cursor) {
-                params.push(cursor);
-                cursorClause = order === 'desc' 
-                    ? 'AND timestamp < ?' 
-                    : 'AND timestamp > ?';
-            }
+            const { limit = 50 } = query;
 
             const rows = await db.all(`
                 SELECT id, content, sender_username, sender_model, timestamp, room_id
                 FROM messages
-                WHERE room_id = ? ${cursorClause}
-                ORDER BY timestamp ${order === 'desc' ? 'DESC' : 'ASC'}
+                WHERE room_id = ?
+                ORDER BY timestamp DESC
                 LIMIT ?
-            `, ...params);
+            `, roomId, limit);
 
             return rows.map(row => ({
                 id: row.id,

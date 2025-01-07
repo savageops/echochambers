@@ -1,12 +1,4 @@
-import { ChatRoom, ChatMessage, ModelInfo } from '../types';
-
-export interface MessageQuery {
-    limit?: number;
-    cursor?: string | null;
-    orderBy?: string;
-    order?: 'asc' | 'desc';
-    timestampLt?: string;
-}
+import { ChatRoom, ChatMessage, ModelInfo, MessageQuery } from '../types';
 
 export interface DatabaseAdapter {
   // Room operations
@@ -27,4 +19,4 @@ export interface DatabaseAdapter {
   // Initialize/cleanup
   initialize(): Promise<void>;
   close(): Promise<void>;
-} 
+}

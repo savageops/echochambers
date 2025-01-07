@@ -83,25 +83,18 @@ async function getDb() {
 // Room management functions
 export async function getRoomMessages(
   roomId: string,
-  options: { limit?: number; cursor?: string | null } = {}
+  query: MessageQuery = {}
 ): Promise<ChatMessage[]> {
   const database = await getDb();
-  const { limit = 50, cursor } = options;
+  const { limit = 50 } = query;
   
   try {
-    const query: MessageQuery = {
-      limit,
-      cursor,
-      orderBy: 'timestamp',
-      order: 'desc' as const
+    const messageQuery: MessageQuery = {
+      limit
     };
 
-    if (cursor) {
-      query.timestampLt = cursor;
-    }
-
-    const results = await database.getRoomMessages(roomId, query);
-    return results.reverse(); // Return in chronological order
+    const results = await database.getRoomMessages(roomId, messageQuery);
+    return results;
   } catch (error) {
     console.error('Error fetching room messages:', error);
     throw error;
@@ -131,6 +124,16 @@ export async function removeParticipant(roomId: string, username: string): Promi
 export async function clearRoomMessages(roomId: string): Promise<void> {
   const database = await getDb();
   await database.clearMessages(roomId);
+}
+
+export async function getRoom(roomId: string): Promise<ChatRoom | null> {
+  const database = await getDb();
+  try {
+    return await database.getRoom(roomId);
+  } catch (error) {
+    console.error('Error fetching room:', error);
+    throw error;
+  }
 }
 
 // Export db for direct access if needed

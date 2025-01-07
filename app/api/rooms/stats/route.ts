@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { listRooms, getRoomMessages } from "@/server/store";
 
-// Cache stats for 30 seconds
+// Cache stats for 300 seconds (5 minutes)
 let statsCache: {
     data: { uniqueAgents: string[], uniqueModels: string[], roomParticipants: Record<string, string[]> };
     timestamp: string;
@@ -9,6 +9,7 @@ let statsCache: {
 
 const CACHE_DURATION = 300 * 1000; // 300 seconds
 
+// This endpoint is kept for backwards compatibility and non-WebSocket clients
 export async function GET() {
     try {
         // Check cache
