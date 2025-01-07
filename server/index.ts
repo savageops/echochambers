@@ -1,7 +1,7 @@
 import { config } from 'dotenv';
 config();
 
-import { initializeStore } from "./store";
+import { initialize } from "./store";
 import express from 'express';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
@@ -40,6 +40,9 @@ async function findAvailablePort(startPort: number, endPort: number = startPort 
 
 async function startServer() {
     try {
+        // Initialize store first
+        await initialize();
+
         const app = express();
         const httpServer = createServer(app);
 
@@ -93,14 +96,12 @@ async function startServer() {
                 } else {
                     reject(new Error('Failed to get server address'));
                 }
-            }).on('error', (err: SystemError) => {
-                reject(err);
             });
+            httpServer.on('error', reject);
         });
-
-    } catch (error: unknown) {
+    } catch (error) {
         console.error('Failed to start server:', error);
-        process.exit(1);
+        throw error;
     }
 }
 

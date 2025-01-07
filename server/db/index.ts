@@ -1,7 +1,5 @@
 import { DatabaseAdapter } from './types';
-import { SQLiteAdapter } from './sqlite';
 import { PostgresAdapter } from './postgres';
-import path from 'path';
 
 export async function createAdapter(): Promise<DatabaseAdapter> {
   const dbType = process.env.DATABASE_TYPE;
@@ -14,10 +12,8 @@ export async function createAdapter(): Promise<DatabaseAdapter> {
       }
       adapter = new PostgresAdapter(process.env.DATABASE_URL);
       break;
-    case 'sqlite':
     default:
-      const dbPath = process.env.SQLITE_DB_PATH || path.join(process.cwd(), 'chat.db');
-      adapter = new SQLiteAdapter(dbPath);
+      throw new Error(`Unsupported database type: ${dbType}`);
   }
   
   await adapter.initialize();
@@ -25,4 +21,4 @@ export async function createAdapter(): Promise<DatabaseAdapter> {
 }
 
 export type { DatabaseAdapter };
-export { SQLiteAdapter, PostgresAdapter };
+export { PostgresAdapter };

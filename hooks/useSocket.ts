@@ -1,92 +1,153 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { ChatMessage, ChatRoom, ServerToClientEvents, ClientToServerEvents, GlobalStats, RoomStats, MessageOptions } from '@/server/types';
+import { ChatMessage, MessageOptions, MessageDelta } from '../server/types';
 
-export function useSocket() {
-    const socket = useRef<Socket<ServerToClientEvents, ClientToServerEvents>>();
+interface UseSocketOptions {
+    autoReconnect?: boolean;
+    reconnectInterval?: number;
+    maxReconnectAttempts?: number;
+}
+
+export function useSocket(options: UseSocketOptions = {}) {
+    const {
+        autoReconnect = true,
+        reconnectInterval = 5000,
+        maxReconnectAttempts = 5
+    } = options;
+
     const [isConnected, setIsConnected] = useState(false);
-    const reconnectAttempts = useRef(0);
-    const MAX_RECONNECT_ATTEMPTS = 5;
-    const RECONNECT_DELAY = 1000; // 1 second
+    const [error, setError] = useState<Error | null>(null);
+    const socketRef = useRef<Socket | null>(null);
+    const reconnectAttemptsRef = useRef(0);
+    const messageCache = useRef<Map<string, ChatMessage[]>>(new Map());
+    const cursorCache = useRef<Map<string, string>>(new Map());
 
     const connect = useCallback(() => {
-        if (socket.current?.connected) {
-            console.log('Socket already connected');
-            setIsConnected(true);
-            return;
+        try {
+            if (!socketRef.current) {
+                socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
+                    reconnection: autoReconnect,
+                    reconnectionDelay: reconnectInterval,
+                    reconnectionAttempts: maxReconnectAttempts
+                });
+
+                socketRef.current.on('connect', () => {
+                    console.log('Socket connected');
+                    setIsConnected(true);
+                    setError(null);
+                    reconnectAttemptsRef.current = 0;
+                });
+
+                socketRef.current.on('disconnect', () => {
+                    console.log('Socket disconnected');
+                    setIsConnected(false);
+                });
+
+                socketRef.current.on('connect_error', (err) => {
+                    console.error('Socket connection error:', err);
+                    setError(err);
+                    setIsConnected(false);
+                });
+
+                socketRef.current.on('error', (err: { message: string }) => {
+                    console.error('Socket error:', err);
+                    setError(new Error(err.message));
+                });
+            }
+        } catch (err) {
+            console.error('Failed to initialize socket:', err);
+            setError(err instanceof Error ? err : new Error('Failed to initialize socket'));
         }
+    }, [autoReconnect, reconnectInterval, maxReconnectAttempts]);
 
-        console.log('Connecting socket...');
-        socket.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
-            reconnection: true,
-            reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
-            reconnectionDelay: RECONNECT_DELAY,
-            timeout: 10000,
-            transports: ['websocket', 'polling']
-        });
-
-        socket.current.on('connect', () => {
-            console.log('Socket connected');
-            setIsConnected(true);
-            reconnectAttempts.current = 0;
-        });
-
-        socket.current.on('disconnect', (reason) => {
-            console.log('Socket disconnected:', reason);
-            setIsConnected(false);
-        });
-
-        socket.current.on('error', (error) => {
-            console.error('Socket error:', error);
-        });
-
+    const disconnect = useCallback(() => {
+        if (socketRef.current) {
+            socketRef.current.disconnect();
+            socketRef.current = null;
+        }
+        setIsConnected(false);
+        setError(null);
     }, []);
 
-    const getMessages = useCallback((roomId: string, options: MessageOptions = {}) => {
-        if (!socket.current?.connected) {
-            console.log('Socket not connected, connecting...');
-            connect();
-            return;
+    const joinRoom = useCallback((roomId: string) => {
+        if (socketRef.current && isConnected) {
+            socketRef.current.emit('room:join', roomId);
         }
-        console.log('Getting messages for room:', roomId, options);
-        socket.current.emit('room:messages:get', roomId, options);
-    }, [connect]);
+    }, [isConnected]);
 
-    const getRoomStats = useCallback((roomId: string) => {
-        if (!socket.current?.connected) {
-            console.log('Socket not connected, connecting...');
-            connect();
-            return;
+    const leaveRoom = useCallback((roomId: string) => {
+        if (socketRef.current && isConnected) {
+            socketRef.current.emit('room:leave', roomId);
         }
-        console.log('Getting stats for room:', roomId);
-        socket.current.emit('room:stats:get', roomId);
-    }, [connect]);
+    }, [isConnected]);
+
+    const getMessages = useCallback((roomId: string, options: MessageOptions = {}) => {
+        if (socketRef.current && isConnected) {
+            socketRef.current.emit('room:messages:get', roomId, options);
+        }
+    }, [isConnected]);
+
+    const syncMessages = useCallback((roomId: string) => {
+        if (socketRef.current && isConnected) {
+            const lastCursor = cursorCache.current.get(roomId);
+            if (lastCursor) {
+                socketRef.current.emit('room:messages:sync', roomId, lastCursor);
+            }
+        }
+    }, [isConnected]);
 
     const getGlobalStats = useCallback(() => {
-        if (!socket.current?.connected) {
-            console.log('Socket not connected, connecting...');
-            connect();
-            return;
+        if (socketRef.current && isConnected) {
+            socketRef.current.emit('global:stats:get');
         }
-        console.log('Getting global stats');
-        socket.current.emit('global:stats:get');
-    }, [connect]);
+    }, [isConnected]);
+
+    const handleMessageDelta = useCallback((delta: MessageDelta) => {
+        const currentMessages = messageCache.current.get(delta.roomId) || [];
+        const updatedMessages = [...currentMessages];
+
+        // Remove deleted messages
+        delta.removed.forEach(id => {
+            const index = updatedMessages.findIndex(msg => msg.id === id);
+            if (index !== -1) {
+                updatedMessages.splice(index, 1);
+            }
+        });
+
+        // Update modified messages
+        delta.modified.forEach(msg => {
+            const index = updatedMessages.findIndex(m => m.id === msg.id);
+            if (index !== -1) {
+                updatedMessages[index] = msg;
+            }
+        });
+
+        // Add new messages
+        updatedMessages.push(...delta.added);
+
+        // Update cache
+        messageCache.current.set(delta.roomId, updatedMessages);
+        cursorCache.current.set(delta.roomId, delta.cursor);
+
+        return updatedMessages;
+    }, []);
 
     useEffect(() => {
         connect();
-        return () => {
-            if (socket.current) {
-                socket.current.disconnect();
-            }
-        };
-    }, [connect]);
+        return () => disconnect();
+    }, [connect, disconnect]);
 
     return {
-        socket: socket.current,
+        socket: socketRef.current,
         isConnected,
+        error,
         connect,
+        disconnect,
+        joinRoom,
+        leaveRoom,
         getMessages,
-        getRoomStats,
-        getGlobalStats
+        syncMessages,
+        getGlobalStats,
+        handleMessageDelta
     };
 }

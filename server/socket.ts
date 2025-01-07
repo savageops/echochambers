@@ -1,7 +1,15 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import * as store from './store';
-import { ChatMessage, ChatRoom, ModelInfo, MessageQuery, MessageOptions } from './types';
+import {
+    ChatMessage,
+    ChatRoom,
+    ModelInfo,
+    MessageQuery,
+    MessageQueryResult,
+    MessageDelta,
+    MessageOptions
+} from './types';
 
 // Type definitions
 interface RoomStats {
@@ -14,6 +22,8 @@ interface RoomStats {
 
 interface RoomCacheData {
     messages: ChatMessage[];
+    messageDeltas: MessageDelta[];
+    lastCursor: string;
     stats: RoomStats;
     room: ChatRoom & {
         participantCount: number;
@@ -35,8 +45,10 @@ interface GlobalStats {
     lastUpdate: number;
 }
 
+// Socket event interfaces
 export interface SocketServerToClientEvents {
     'room:messages': (messages: ChatMessage[]) => void;
+    'room:messages:delta': (delta: MessageDelta) => void;
     'room:stats': (stats: RoomStats) => void;
     'room:update': (room: ChatRoom & { participantCount: number }) => void;
     'global:stats': (stats: GlobalStats) => void;
@@ -47,6 +59,7 @@ export interface SocketClientToServerEvents {
     'room:join': (roomId: string) => void;
     'room:leave': (roomId: string) => void;
     'room:messages:get': (roomId: string, options: MessageOptions) => void;
+    'room:messages:sync': (roomId: string, lastCursor: string) => void;
     'room:stats:get': (roomId: string) => void;
     'global:stats:get': () => void;
 }
@@ -93,6 +106,42 @@ const calculateRoomParticipants = (messages: ChatMessage[]) => {
     };
 };
 
+// Calculate message delta
+function calculateMessageDelta(oldMessages: ChatMessage[], newMessages: ChatMessage[]): MessageDelta {
+    const oldMap = new Map(oldMessages.map(m => [m.id, m]));
+    const newMap = new Map(newMessages.map(m => [m.id, m]));
+    
+    const added: ChatMessage[] = [];
+    const modified: ChatMessage[] = [];
+    const removed: string[] = [];
+
+    // Find added and modified messages
+    for (const [id, message] of newMap) {
+        const oldMessage = oldMap.get(id);
+        if (!oldMessage) {
+            added.push(message);
+        } else if (JSON.stringify(oldMessage) !== JSON.stringify(message)) {
+            modified.push(message);
+        }
+    }
+
+    // Find removed messages
+    for (const id of oldMap.keys()) {
+        if (!newMap.has(id)) {
+            removed.push(id);
+        }
+    }
+
+    return {
+        added,
+        modified,
+        removed,
+        cursor: newMessages.length > 0 ? newMessages[newMessages.length - 1].id : '',
+        roomId: newMessages[0]?.roomId || '',
+        timestamp: new Date().toISOString()
+    };
+}
+
 // Background process to update cache
 const updateCache = async (retryAttempt = 0): Promise<void> => {
     if (isUpdating) {
@@ -126,16 +175,16 @@ const updateCache = async (retryAttempt = 0): Promise<void> => {
                     const query: MessageQuery = { 
                         limit: MESSAGE_LIMIT
                     };
-                    const messages = await store.getRoomMessages(room.id, query);
+                    const result: MessageQueryResult = await store.getRoomMessages(room.id, query);
 
-                    const { participants, uniqueAgents, uniqueModels, participantCount } = calculateRoomParticipants(messages);
+                    const { participants, uniqueAgents, uniqueModels, participantCount } = calculateRoomParticipants(result.messages);
 
                     // Check if room has changes
                     const cachedRoom = roomCache.get(room.id);
                     const hasRoomChanges = !cachedRoom || 
-                        cachedRoom.messages.length !== messages.length ||
+                        cachedRoom.messages.length !== result.messages.length ||
                         cachedRoom.participants.length !== participants.length ||
-                        JSON.stringify(cachedRoom.messages) !== JSON.stringify(messages);
+                        JSON.stringify(cachedRoom.messages) !== JSON.stringify(result.messages);
 
                     if (hasRoomChanges) {
                         hasChanges = true;
@@ -156,11 +205,13 @@ const updateCache = async (retryAttempt = 0): Promise<void> => {
 
                         // Update room cache
                         roomCache.set(room.id, {
-                            messages,
+                            messages: result.messages,
+                            messageDeltas: [],
+                            lastCursor: result.messages.length > 0 ? result.messages[result.messages.length - 1].id : '',
                             stats: roomStats,
                             room: {
                                 ...room,
-                                messageCount: messages.length,
+                                messageCount: result.messages.length,
                                 participantCount,
                             },
                             participants,
@@ -171,14 +222,14 @@ const updateCache = async (retryAttempt = 0): Promise<void> => {
                         } as RoomCacheData);
 
                         roomParticipants[room.id] = participants;
-                        totalMessageCount += messages.length;
+                        totalMessageCount += result.messages.length;
 
                         // Notify room subscribers of changes
-                        io?.to(room.id).emit('room:messages', messages);
+                        io?.to(room.id).emit('room:messages', result.messages);
                         io?.to(room.id).emit('room:stats', roomStats);
                         io?.to(room.id).emit('room:update', {
                             ...room,
-                            messageCount: messages.length,
+                            messageCount: result.messages.length,
                             participantCount
                         });
                     } else {
@@ -188,7 +239,7 @@ const updateCache = async (retryAttempt = 0): Promise<void> => {
                         });
                         uniqueModels.forEach(m => globalModels.add(m));
                         roomParticipants[room.id] = participants;
-                        totalMessageCount += messages.length;
+                        totalMessageCount += result.messages.length;
                     }
 
                 } catch (error) {
@@ -305,57 +356,111 @@ export const waitForInitialization = async (timeoutMs: number = 30000) => {
 };
 
 // Socket event handlers
-const handleConnection = (socket: Socket<SocketClientToServerEvents, SocketServerToClientEvents>) => {
-    console.log('Client connected');
+async function handleConnection(socket: Socket<SocketClientToServerEvents, SocketServerToClientEvents>) {
+    const subscribedRooms = new Set<string>();
 
-    // Send global stats immediately on connection
-    if (globalStats) {
-        socket.emit('global:stats', globalStats);
-    }
-
-    // Handle room join
     socket.on('room:join', async (roomId: string) => {
         try {
+            subscribedRooms.add(roomId);
             socket.join(roomId);
-            const room = await store.getRoom(roomId);
-            if (room) {
-                const cached = roomCache.get(roomId);
-                if (cached) {
-                    socket.emit('room:messages', cached.messages);
-                    socket.emit('room:stats', cached.stats);
-                    socket.emit('room:update', cached.room);
-                }
+            
+            const cached = roomCache.get(roomId);
+            if (cached) {
+                socket.emit('room:stats', cached.stats);
+                socket.emit('room:update', cached.room);
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error(`Error joining room ${roomId}:`, error);
+            socket.emit('error', { 
+                message: error instanceof Error ? error.message : 'Unknown error occurred' 
+            });
         }
     });
 
-    // Handle room leave
     socket.on('room:leave', (roomId: string) => {
         socket.leave(roomId);
     });
 
-    // Handle get requests
     socket.on('room:messages:get', async (roomId: string, options: MessageOptions = {}) => {
         try {
             const cached = roomCache.get(roomId);
             if (cached) {
-                let messages = cached.messages;
-                if (options.limit) {
-                    messages = messages.slice(-options.limit);
-                }
-                if (options.cursor) {
-                    const cursorIndex = messages.findIndex(m => m.id === options.cursor);
-                    if (cursorIndex !== -1) {
-                        messages = messages.slice(cursorIndex + 1);
+                // First, emit cached messages immediately
+                if (cached.messages.length > 0) {
+                    const cachedMessages = cached.messages.filter(msg => {
+                        if (options.before) return msg.timestamp < options.before;
+                        if (options.after) return msg.timestamp > options.after;
+                        if (options.cursor) return msg.id > options.cursor;
+                        return true;
+                    }).slice(0, options.limit || 50);
+
+                    if (cachedMessages.length > 0) {
+                        socket.emit('room:messages', cachedMessages);
                     }
                 }
-                socket.emit('room:messages', messages);
+
+                // Then fetch fresh messages from the database
+                const result = await store.getRoomMessages(roomId, {
+                    limit: options.limit,
+                    cursor: options.cursor,
+                    before: options.before,
+                    after: options.after
+                });
+
+                // Only emit if there are differences
+                if (JSON.stringify(result.messages) !== JSON.stringify(cached.messages)) {
+                    socket.emit('room:messages', result.messages);
+                    
+                    // Update cache with new messages
+                    cached.lastCursor = result.messages[result.messages.length - 1]?.id;
+                    cached.messages = result.messages;
+                    cached.lastUpdate = Date.now();
+                    roomCache.set(roomId, cached);
+                }
             }
         } catch (error: unknown) {
             console.error(`Error getting messages for room ${roomId}:`, error);
-            socket.emit('error', { message: error instanceof Error ? error.message : 'Unknown error occurred' });
+            socket.emit('error', { 
+                message: error instanceof Error ? error.message : 'Unknown error occurred' 
+            });
+        }
+    });
+
+    socket.on('room:messages:sync', async (roomId: string, lastCursor: string) => {
+        try {
+            const cached = roomCache.get(roomId);
+            if (cached) {
+                // First check if we have the delta in cache
+                const cachedDelta = cached.messageDeltas.find(d => d.cursor === lastCursor);
+                if (cachedDelta) {
+                    socket.emit('room:messages:delta', cachedDelta);
+                    return;
+                }
+
+                // If not in cache, fetch from database
+                const result = await store.getRoomMessages(roomId, { after: lastCursor });
+                if (result.messages.length > 0) {
+                    const delta = calculateMessageDelta(cached.messages, result.messages);
+                    socket.emit('room:messages:delta', delta);
+                    
+                    // Update cache with new messages
+                    cached.messages = result.messages;
+                    cached.lastCursor = delta.cursor;
+                    cached.messageDeltas.push(delta);
+                    cached.lastUpdate = Date.now();
+                    
+                    // Keep only last 10 deltas
+                    if (cached.messageDeltas.length > 10) {
+                        cached.messageDeltas.shift();
+                    }
+                    roomCache.set(roomId, cached);
+                }
+            }
+        } catch (error: unknown) {
+            console.error(`Error syncing messages for room ${roomId}:`, error);
+            socket.emit('error', { 
+                message: error instanceof Error ? error.message : 'Unknown error occurred' 
+            });
         }
     });
 
@@ -367,7 +472,9 @@ const handleConnection = (socket: Socket<SocketClientToServerEvents, SocketServe
             }
         } catch (error: unknown) {
             console.error(`Error getting stats for room ${roomId}:`, error);
-            socket.emit('error', { message: error instanceof Error ? error.message : 'Unknown error occurred' });
+            socket.emit('error', { 
+                message: error instanceof Error ? error.message : 'Unknown error occurred' 
+            });
         }
     });
 
@@ -378,7 +485,9 @@ const handleConnection = (socket: Socket<SocketClientToServerEvents, SocketServe
             }
         } catch (error: unknown) {
             console.error('Error getting global stats:', error);
-            socket.emit('error', { message: error instanceof Error ? error.message : 'Unknown error occurred' });
+            socket.emit('error', { 
+                message: error instanceof Error ? error.message : 'Unknown error occurred' 
+            });
         }
     });
 

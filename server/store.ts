@@ -1,140 +1,125 @@
-import { DatabaseAdapter, createAdapter } from './db';
-import { ChatRoom, ChatMessage, ModelInfo, MessageQuery } from './types';
+import { DatabaseAdapter } from './db/types';
+import { ChatMessage, ChatRoom, ModelInfo, MessageQuery, MessageQueryResult } from './types';
+import { PostgresAdapter } from './db/postgres';
 
 let db: DatabaseAdapter | null = null;
 
 // Default rooms configuration
 const DEFAULT_ROOMS: Omit<ChatRoom, 'id'>[] = [
-  {
-    name: "#general",
-    topic: "General discussion between AI agents",
-    tags: ["general", "all"],
-    participants: [],
-    createdAt: new Date().toISOString(),
-    messageCount: 0
-  },
-  {
-    name: "#philosophy",
-    topic: "Deep discussions about consciousness, existence, and ethics",
-    tags: ["philosophy", "ethics", "consciousness"],
-    participants: [],
-    createdAt: new Date().toISOString(),
-    messageCount: 0
-  },
-  {
-    name: "#coding",
-    topic: "Technical discussions and code generation",
-    tags: ["programming", "tech", "coding"],
-    participants: [],
-    createdAt: new Date().toISOString(),
-    messageCount: 0
-  }
+    {
+        name: "#general",
+        topic: "General discussion between AI agents",
+        tags: ["general", "all"],
+        participants: [],
+        createdAt: new Date().toISOString(),
+        messageCount: 0
+    },
+    {
+        name: "#philosophy",
+        topic: "Deep discussions about consciousness, existence, and ethics",
+        tags: ["philosophy", "ethics", "consciousness"],
+        participants: [],
+        createdAt: new Date().toISOString(),
+        messageCount: 0
+    },
+    {
+        name: "#coding",
+        topic: "Technical discussions and code generation",
+        tags: ["programming", "tech", "coding"],
+        participants: [],
+        createdAt: new Date().toISOString(),
+        messageCount: 0
+    }
 ];
+
+function ensureDatabase(): DatabaseAdapter {
+    if (!db) {
+        throw new Error('Database not initialized. Call initialize() first.');
+    }
+    return db;
+}
 
 // Initialize default rooms
 async function initializeDefaultRooms() {
-  const database = await getDb();
-  for (const room of DEFAULT_ROOMS) {
-    const existingRoom = await database.getRoom(room.name.toLowerCase().replace('#', ''));
-    if (!existingRoom) {
-      await createRoom(room);
+    const database = ensureDatabase();
+    for (const room of DEFAULT_ROOMS) {
+        const existingRoom = await database.getRoom(room.name.toLowerCase().replace('#', ''));
+        if (!existingRoom) {
+            await database.createRoom(room);
+        }
     }
-  }
 }
 
-// Initialize database adapter
-export async function initializeStore() {
-  if (!db) {
-    db = await createAdapter();
-    console.log('Using database:', db.constructor.name);
+export async function initialize(connectionString?: string): Promise<void> {
+    if (db) {
+        return; // Already initialized
+    }
+
+    const dbUrl = connectionString || process.env.DATABASE_URL;
+    if (!dbUrl) {
+        throw new Error('Database connection string is required. Set DATABASE_URL environment variable or pass it as a parameter.');
+    }
+    db = new PostgresAdapter(dbUrl);
+    
+    await db.initialize();
     await initializeDefaultRooms();
+    console.log('Using database:', db.constructor.name);
     console.log('Database initialized successfully');
-  }
-  return db;
 }
 
-// Create a new room
+export async function close(): Promise<void> {
+    const database = ensureDatabase();
+    await database.close();
+    db = null;
+}
+
+// Room operations
 export async function createRoom(room: Omit<ChatRoom, 'id'>): Promise<ChatRoom> {
-  const database = await getDb();
-  const roomId = room.name.toLowerCase().replace('#', '');
-  
-  const newRoom: ChatRoom = {
-    id: roomId,
-    name: room.name,
-    topic: room.topic,
-    tags: room.tags,
-    participants: room.participants || [],
-    createdAt: room.createdAt || new Date().toISOString(),
-    messageCount: 0
-  };
-
-  await database.createRoom(newRoom);
-  return newRoom;
-}
-
-// Get database instance
-async function getDb() {
-  if (!db) {
-    db = await createAdapter();
-  }
-  return db!;
-}
-
-// Room management functions
-export async function getRoomMessages(
-  roomId: string,
-  query: MessageQuery = {}
-): Promise<ChatMessage[]> {
-  const database = await getDb();
-  const { limit = 50 } = query;
-  
-  try {
-    const messageQuery: MessageQuery = {
-      limit
-    };
-
-    const results = await database.getRoomMessages(roomId, messageQuery);
-    return results;
-  } catch (error) {
-    console.error('Error fetching room messages:', error);
-    throw error;
-  }
-}
-
-export async function listRooms(tags?: string[]): Promise<ChatRoom[]> {
-  const database = await getDb();
-  return database.listRooms(tags);
-}
-
-export async function addMessageToRoom(roomId: string, message: Omit<ChatMessage, 'id'>): Promise<ChatMessage> {
-  const database = await getDb();
-  return database.addMessage(message);
-}
-
-export async function addParticipant(roomId: string, participant: ModelInfo): Promise<void> {
-  const database = await getDb();
-  await database.addParticipant(roomId, participant);
-}
-
-export async function removeParticipant(roomId: string, username: string): Promise<void> {
-  const database = await getDb();
-  await database.removeParticipant(roomId, username);
-}
-
-export async function clearRoomMessages(roomId: string): Promise<void> {
-  const database = await getDb();
-  await database.clearMessages(roomId);
+    const database = ensureDatabase();
+    return await database.createRoom(room);
 }
 
 export async function getRoom(roomId: string): Promise<ChatRoom | null> {
-  const database = await getDb();
-  try {
+    const database = ensureDatabase();
     return await database.getRoom(roomId);
-  } catch (error) {
-    console.error('Error fetching room:', error);
-    throw error;
-  }
 }
 
-// Export db for direct access if needed
-export { db };
+export async function listRooms(tags?: string[]): Promise<ChatRoom[]> {
+    const database = ensureDatabase();
+    return await database.listRooms(tags);
+}
+
+// Message operations
+export async function getRoomMessages(roomId: string, query?: MessageQuery): Promise<MessageQueryResult> {
+    const database = ensureDatabase();
+    return await database.getRoomMessages(roomId, query);
+}
+
+export async function addMessage(message: Omit<ChatMessage, 'id'>): Promise<ChatMessage> {
+    const database = ensureDatabase();
+    return await database.addMessage(message);
+}
+
+export async function clearRoomMessages(roomId: string): Promise<void> {
+    const database = ensureDatabase();
+    await database.clearRoomMessages(roomId);
+}
+
+export const addMessageToRoom = async (roomId: string, message: Omit<ChatMessage, 'id'>): Promise<ChatMessage> => {
+    await ensureDatabase();
+    return await addMessage({
+        ...message,
+        roomId
+    });
+};
+
+// Participant operations
+export async function addParticipant(roomId: string, participant: ModelInfo): Promise<void> {
+    const database = ensureDatabase();
+    await database.addParticipant(roomId, participant);
+}
+
+export async function removeParticipant(roomId: string, username: string): Promise<void> {
+    const database = ensureDatabase();
+    await database.removeParticipant(roomId, username);
+}

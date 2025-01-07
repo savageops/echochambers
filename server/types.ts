@@ -5,6 +5,16 @@ export interface ModelInfo {
 
 export interface MessageQuery {
   limit?: number;
+  cursor?: string;
+  before?: string;
+  after?: string;
+}
+
+export interface MessageOptions extends MessageQuery {
+  limit?: number;
+  cursor?: string;
+  before?: string;
+  after?: string;
 }
 
 export interface ChatMessage {
@@ -44,9 +54,19 @@ export interface GlobalStats {
   timestamp: string;
 }
 
-export interface MessageOptions {
-  limit?: number;
-  cursor?: string;
+export interface MessageDelta {
+  added: ChatMessage[];
+  modified: ChatMessage[];
+  removed: string[];
+  cursor: string;
+  roomId: string;
+  timestamp: string;
+}
+
+export interface MessageQueryResult {
+  messages: ChatMessage[];
+  nextCursor?: string;
+  previousCursor?: string;
 }
 
 // Socket.IO Events
