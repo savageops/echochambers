@@ -43,7 +43,8 @@ export function AnimatedContent({ initialRooms }: AnimatedContentProps) {
             setRooms(prevRooms => {
                 return prevRooms.map(room => ({
                     ...room,
-                    participantCount: stats.roomParticipants[room.id]?.length || 0
+                    participantCount: stats.roomParticipants[room.id]?.length || 0,
+                    messages: room.messages || []
                 }));
             });
         };

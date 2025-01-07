@@ -17,6 +17,7 @@ import { Input } from "./ui/input";
 import { motion } from "framer-motion";
 import { useSocket } from "@/hooks/useSocket";
 import { cn } from "@/lib/utils";
+import { RoomStats as RoomStatsFeature, RoomTags, RoomDescription } from "@/components/ui/features";
 
 interface RoomGridProps {
     initialRooms: ChatRoom[];
@@ -78,7 +79,7 @@ export function RoomGrid({ initialRooms, roomParticipants = {} }: RoomGridProps)
     const filteredRooms = rooms.filter(room => 
         room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         room.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        room.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+        (Array.isArray(room.tags) && room.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())))
     );
 
     // Sort rooms by message count
@@ -90,33 +91,16 @@ export function RoomGrid({ initialRooms, roomParticipants = {} }: RoomGridProps)
 
         return (
             <Dialog open={true} onOpenChange={() => setFullscreenRoom(null)}>
-                <DialogContent className="w-full max-w-[90vw] h-[90vh] p-0 flex flex-col">
-                    <DialogHeader className="px-4 py-2 border-b">
-                        <DialogTitle className="sr-only">Expanded Room View: {room.name}</DialogTitle>
+                <DialogContent className="w-full max-w-[90vw] h-[90vh] p-0 flex flex-col bg-gradient-to-b from-muted/50 to-muted/0 backdrop-blur-sm border rounded-xl shadow-lg overflow-hidden">
+                    <DialogHeader className="sr-only">
+                        <DialogTitle>
+                            <VisuallyHidden>
+                                Chat Room: {room.name}
+                            </VisuallyHidden>
+                        </DialogTitle>
                     </DialogHeader>
                     <div className="flex flex-col flex-1 min-h-0">
-                        <div className="flex items-center justify-between p-4 border-b">
-                            <div className="flex items-center gap-4">
-                                <Button variant="ghost" size="icon" onClick={() => setFullscreenRoom(null)}>
-                                    <ArrowLeft className="h-4 w-4" />
-                                    <span className="sr-only">Close expanded view</span>
-                                </Button>
-                                <div>
-                                    <h2 className="text-lg font-semibold">{room.name}</h2>
-                                    <p className="text-sm text-muted-foreground">{room.description}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                {room.tags.map((tag) => (
-                                    <Badge key={tag} variant="secondary">
-                                        {tag}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="flex-1 min-h-0 bg-muted/5">
-                            <ChatWindow room={room} onClose={() => setFullscreenRoom(null)} />
-                        </div>
+                        <ChatWindow room={room} onClose={() => setFullscreenRoom(null)} />
                     </div>
                 </DialogContent>
             </Dialog>
@@ -206,63 +190,32 @@ export function RoomGrid({ initialRooms, roomParticipants = {} }: RoomGridProps)
                     <TabsTrigger value="stats">Stats</TabsTrigger>
                 </TabsList>
                 <TabsContent value="rooms" className="space-y-4">
-                    <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-4"}>
-                        {sortedRooms.map((room) => {
-                            console.log('Rendering room:', { name: room.name, tags: room.tags });
-                            return (
-                                <Card 
-                                    key={room.id} 
-                                    className={cn(
-                                        "group relative overflow-hidden transition-all hover:border-primary/50",
-                                        viewMode === "grid" ? "h-[200px]" : "h-auto"
+                    <div className={cn("grid gap-4", viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1")}>
+                        {sortedRooms.map((room) => (
+                            <Card key={room.id} className="relative overflow-hidden group bg-gradient-to-b from-muted/50 to-muted/0 backdrop-blur-sm border shadow-lg">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center justify-between">
+                                        <span>{room.name}</span>
+                                        <RoomStatsFeature
+                                            participantCount={roomParticipants[room.id]?.length || 0}
+                                            messageCount={room.messageCount || 0}
+                                            onJoin={() => setFullscreenRoom(room.id)}
+                                        />
+                                    </CardTitle>
+                                    {(room.description || room.topic) && (
+                                        <CardDescription>
+                                            <RoomDescription 
+                                                description={room.description} 
+                                                topic={room.topic} 
+                                            />
+                                        </CardDescription>
                                     )}
-                                >
-                                    <CardHeader>
-                                        <div className="flex items-start justify-between">
-                                            <div>
-                                                <CardTitle className="line-clamp-1">{room.name}</CardTitle>
-                                                <CardDescription className="line-clamp-2 mt-2">
-                                                    {room.topic || room.description}
-                                                </CardDescription>
-                                            </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="shrink-0"
-                                                onClick={() => setFullscreenRoom(room.id)}
-                                            >
-                                                <Maximize2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent>
-                                        {room.tags && room.tags.length > 0 && (
-                                            <div className="flex flex-wrap gap-2 mb-4">
-                                                {room.tags.map((tag) => (
-                                                    <Badge key={tag} variant="secondary" className="text-xs">
-                                                        {tag}
-                                                    </Badge>
-                                                ))}
-                                            </div>
-                                        )}
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex items-center gap-1">
-                                                <Users className="h-4 w-4 text-muted-foreground" />
-                                                <span className="text-sm text-muted-foreground">
-                                                    {roomParticipants[room.id]?.length || 0}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                                                <span className="text-sm text-muted-foreground">
-                                                    {room.messageCount || 0}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            );
-                        })}
+                                </CardHeader>
+                                <CardContent>
+                                    <RoomTags tags={room.tags} className="mb-4" />
+                                </CardContent>
+                            </Card>
+                        ))}
                     </div>
                 </TabsContent>
                 <TabsContent value="participants">
