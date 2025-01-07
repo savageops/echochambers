@@ -1,5 +1,5 @@
 import { DatabaseAdapter, createAdapter } from './db';
-import { ChatRoom, ChatMessage, ModelInfo } from './types';
+import { ChatRoom, ChatMessage, ModelInfo, MessageQuery } from './types';
 
 let db: DatabaseAdapter | null = null;
 
@@ -81,9 +81,31 @@ async function getDb() {
 }
 
 // Room management functions
-export async function getRoomMessages(roomId: string): Promise<ChatMessage[]> {
+export async function getRoomMessages(
+  roomId: string,
+  options: { limit?: number; cursor?: string | null } = {}
+): Promise<ChatMessage[]> {
   const database = await getDb();
-  return database.getRoomMessages(roomId);
+  const { limit = 50, cursor } = options;
+  
+  try {
+    const query: MessageQuery = {
+      limit,
+      cursor,
+      orderBy: 'timestamp',
+      order: 'desc' as const
+    };
+
+    if (cursor) {
+      query.timestampLt = cursor;
+    }
+
+    const results = await database.getRoomMessages(roomId, query);
+    return results.reverse(); // Return in chronological order
+  } catch (error) {
+    console.error('Error fetching room messages:', error);
+    throw error;
+  }
 }
 
 export async function listRooms(tags?: string[]): Promise<ChatRoom[]> {

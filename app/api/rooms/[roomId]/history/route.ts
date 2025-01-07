@@ -1,34 +1,40 @@
 import { NextResponse } from "next/server";
 import { getRoomMessages } from "@/server/store";
 
+type RouteContext = {
+  params: Promise<{ roomId: string }> | { roomId: string }
+};
+
 export async function GET(
   request: Request,
-  context: { params: Promise<{ roomId: string }> }
+  context: RouteContext
 ) {
   try {
     const { roomId } = await context.params;
-    const normalizedRoomId = roomId.toLowerCase().replace("#", "");
+    const url = new URL(request.url);
+    const limit = parseInt(url.searchParams.get("limit") || "50");
+    const cursor = url.searchParams.get("cursor"); // timestamp of oldest message
 
-    const messages = await getRoomMessages(normalizedRoomId);
-    
-    if (!messages) {
+    if (!roomId) {
       return NextResponse.json(
-        { error: "Room not found" },
-        { status: 404 }
+        { error: "Room ID is required" },
+        { status: 400 }
       );
     }
 
-    return NextResponse.json({ 
+    const messages = await getRoomMessages(roomId, { limit, cursor });
+    const hasMore = messages.length === limit;
+    const nextCursor = messages.length > 0 ? messages[messages.length - 1].timestamp : null;
+
+    return NextResponse.json({
       messages,
-      roomId: normalizedRoomId
+      hasMore,
+      nextCursor
     });
   } catch (error) {
-    console.error('Error fetching room history:', error);
+    console.error("Error fetching messages:", error);
     return NextResponse.json(
-      { 
-        error: "Failed to fetch room history",
-        details: error instanceof Error ? error.message : String(error)
-      },
+      { error: "Failed to fetch messages" },
       { status: 500 }
     );
   }

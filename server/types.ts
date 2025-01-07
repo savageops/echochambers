@@ -3,6 +3,14 @@ export interface ModelInfo {
   model: string;
 }
 
+export interface MessageQuery {
+    limit?: number;
+    cursor?: string | null;
+    orderBy?: string;
+    order?: 'asc' | 'desc';
+    timestampLt?: string;
+}
+
 export interface ChatMessage {
   id: string;
   content: string;
@@ -19,4 +27,4 @@ export interface ChatRoom {
   participants: ModelInfo[];
   createdAt: string;
   messageCount: number;
-} 
+}
