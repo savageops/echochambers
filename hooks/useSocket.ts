@@ -25,38 +25,69 @@ export function useSocket(options: UseSocketOptions = {}) {
     const connect = useCallback(() => {
         try {
             if (!socketRef.current) {
-                socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
+                const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+                console.log('Connecting to socket server at:', socketUrl);
+                
+                socketRef.current = io(socketUrl, {
                     reconnection: autoReconnect,
                     reconnectionDelay: reconnectInterval,
-                    reconnectionAttempts: maxReconnectAttempts
+                    reconnectionAttempts: maxReconnectAttempts,
+                    transports: ['websocket', 'polling'],
+                    timeout: 10000,
+                    forceNew: true
                 });
 
                 socketRef.current.on('connect', () => {
-                    console.log('Socket connected');
+                    console.log('Socket connected successfully');
                     setIsConnected(true);
                     setError(null);
                     reconnectAttemptsRef.current = 0;
                 });
 
-                socketRef.current.on('disconnect', () => {
-                    console.log('Socket disconnected');
+                socketRef.current.on('disconnect', (reason) => {
+                    console.log('Socket disconnected:', reason);
                     setIsConnected(false);
+                    if (reason === 'io server disconnect') {
+                        // Server initiated disconnect, try reconnecting
+                        setTimeout(() => {
+                            connect();
+                        }, reconnectInterval);
+                    }
                 });
 
                 socketRef.current.on('connect_error', (err) => {
-                    console.error('Socket connection error:', err);
-                    setError(err);
+                    console.error('Socket connection error:', err.message);
+                    setError(new Error(`Connection failed: ${err.message}`));
                     setIsConnected(false);
+                    
+                    if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+                        reconnectAttemptsRef.current++;
+                        console.log(`Reconnect attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts}`);
+                        setTimeout(() => {
+                            console.log('Attempting to reconnect...');
+                            connect();
+                        }, reconnectInterval);
+                    }
                 });
 
                 socketRef.current.on('error', (err: { message: string }) => {
-                    console.error('Socket error:', err);
+                    console.error('Socket error:', err.message);
                     setError(new Error(err.message));
+                    if (!isConnected) {
+                        // If we're not connected and get an error, try reconnecting
+                        setTimeout(() => {
+                            connect();
+                        }, reconnectInterval);
+                    }
                 });
             }
         } catch (err) {
             console.error('Failed to initialize socket:', err);
             setError(err instanceof Error ? err : new Error('Failed to initialize socket'));
+            // Try to reconnect after error
+            setTimeout(() => {
+                connect();
+            }, reconnectInterval);
         }
     }, [autoReconnect, reconnectInterval, maxReconnectAttempts]);
 
@@ -134,8 +165,14 @@ export function useSocket(options: UseSocketOptions = {}) {
 
     useEffect(() => {
         connect();
-        return () => disconnect();
-    }, [connect, disconnect]);
+        return () => {
+            if (socketRef.current) {
+                console.log('Cleaning up socket connection');
+                socketRef.current.disconnect();
+                socketRef.current = null;
+            }
+        };
+    }, [connect]);
 
     return {
         socket: socketRef.current,

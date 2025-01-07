@@ -13,92 +13,81 @@ interface SystemError extends Error {
     code?: string;
 }
 
-async function findAvailablePort(startPort: number, endPort: number = startPort + 10): Promise<number> {
-    for (let port = startPort; port <= endPort; port++) {
-        try {
-            await new Promise<void>((resolve, reject) => {
-                const testServer = createServer();
-                testServer.listen(port, () => {
-                    testServer.close(() => resolve());
-                });
-                testServer.on('error', (err: SystemError) => {
-                    if (err.code === 'EADDRINUSE') {
-                        resolve(); // Port is in use, try next one
-                    } else {
-                        reject(err);
-                    }
-                });
-            });
-            return port;
-        } catch (error) {
-            console.log(`Port ${port} check failed:`, error);
-            continue;
-        }
-    }
-    throw new Error(`No available ports found between ${startPort} and ${endPort}`);
-}
-
 async function startServer() {
     try {
         // Initialize store first
         await initialize();
 
         const app = express();
-        const httpServer = createServer(app);
+        const port = process.env.PORT ? parseInt(process.env.PORT) : 3001;
+        const maxRetries = 3;
+        let currentPort = port;
 
-        // Find available port first
-        const preferredPort = parseInt(process.env.PORT || '3001', 10);
-        const port = await findAvailablePort(preferredPort);
-        const socketUrl = `http://localhost:${port}`;
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                await new Promise((resolve, reject) => {
+                    const httpServer = createServer(app);
+                    httpServer.on('error', (error: any) => {
+                        if (error.code === 'EADDRINUSE') {
+                            console.log(`Port ${currentPort} is in use, trying ${currentPort + 1}...`);
+                            currentPort++;
+                            httpServer.close();
+                            reject(error);
+                        } else {
+                            reject(error);
+                        }
+                    });
 
-        // Configure CORS with dynamic origin
-        app.use(cors({
-            origin: [process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000', socketUrl],
-            methods: ['GET', 'POST'],
-            credentials: true,
-            allowedHeaders: ['Content-Type', 'x-api-key']
-        }));
+                    httpServer.listen(currentPort, () => {
+                        console.log(`Server running on port ${currentPort}`);
+                        const socketUrl = `http://localhost:${currentPort}`;
+                        // Configure CORS with dynamic origin
+                        app.use(cors({
+                            origin: [process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000', socketUrl],
+                            methods: ['GET', 'POST'],
+                            credentials: true,
+                            allowedHeaders: ['Content-Type', 'x-api-key']
+                        }));
 
-        app.use(express.json());
+                        app.use(express.json());
 
-        // Initialize Socket.IO with correct types and dynamic origin
-        const io = new SocketIOServer<SocketClientToServerEvents, SocketServerToClientEvents>(httpServer, {
-            cors: {
-                origin: [process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000', socketUrl],
-                methods: ['GET', 'POST'],
-                credentials: true
-            }
-        });
+                        // Initialize Socket.IO with correct types and dynamic origin
+                        const io = new SocketIOServer<SocketClientToServerEvents, SocketServerToClientEvents>(httpServer, {
+                            cors: {
+                                origin: [process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000', socketUrl],
+                                methods: ['GET', 'POST'],
+                                credentials: true
+                            }
+                        });
 
-        // Mount the rooms router at /api/rooms
-        app.use('/api/rooms', roomsRouter);
+                        // Mount the rooms router at /api/rooms
+                        app.use('/api/rooms', roomsRouter);
 
-        // Initialize socket handlers and wait for cache to be ready
-        initSocket(io);
-        await waitForInitialization();
+                        // Initialize socket handlers and wait for cache to be ready
+                        initSocket(io);
+                        waitForInitialization();
 
-        // Add a catch-all route handler for debugging
-        app.use((req: express.Request, res: express.Response, _next: express.NextFunction) => {
-            console.log('404 Not Found:', req.method, req.url);
-            res.status(404).json({ error: `Route not found: ${req.method} ${req.url}` });
-        });
+                        // Add a catch-all route handler for debugging
+                        app.use((req: express.Request, res: express.Response, _next: express.NextFunction) => {
+                            console.log('404 Not Found:', req.method, req.url);
+                            res.status(404).json({ error: `Route not found: ${req.method} ${req.url}` });
+                        });
 
-        // Start server
-        await new Promise<void>((resolve, reject) => {
-            httpServer.listen(port, () => {
-                const address = httpServer.address();
-                if (address && typeof address !== 'string') {
-                    console.log(`Server running on port ${port}`);
-                    console.log(`Socket.IO URL: ${socketUrl}`);
-                    // Set environment variable for client-side use
-                    process.env.NEXT_PUBLIC_SOCKET_URL = socketUrl;
-                    resolve();
-                } else {
-                    reject(new Error('Failed to get server address'));
+                        console.log(`Socket.IO URL: ${socketUrl}`);
+                        // Set environment variable for client-side use
+                        process.env.NEXT_PUBLIC_SOCKET_URL = socketUrl;
+                        resolve(httpServer);
+                    });
+                });
+                return; // Success, exit the retry loop
+            } catch (error: any) {
+                if (attempt === maxRetries - 1) {
+                    throw new Error(`Failed to start server after ${maxRetries} attempts: ${error.message}`);
                 }
-            });
-            httpServer.on('error', reject);
-        });
+                // Wait a bit before retrying
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
     } catch (error) {
         console.error('Failed to start server:', error);
         throw error;
