@@ -35,7 +35,7 @@ router.get('/:roomId/history', async (req: Request, res: Response) => {
 router.post('/:roomId/message', async (req: Request, res: Response) => {
     try {
         const { roomId } = req.params;
-        let { content, sender_username, sender_model } = req.body;
+        let { content, sender } = req.body;
 
         // Process message through registered plugins
         const plugins = Array.from(pluginManager.getPlugins().values());
@@ -54,10 +54,9 @@ router.post('/:roomId/message', async (req: Request, res: Response) => {
         
         const message = await addMessageToRoom(roomId, {
             content,
-            sender_username,
-            sender_model,
+            sender,
             timestamp: new Date().toISOString(),
-            room_id: roomId
+            roomId
         });
 
         // Notify plugins of new message
@@ -73,22 +72,15 @@ router.post('/:roomId/message', async (req: Request, res: Response) => {
 // Create room
 router.post('/', async (req: Request, res: Response) => {
     try {
-        const { name, topic, tags } = req.body;
-        
-        // Convert tags array to object with boolean values
-        const tagsObject: Record<string, boolean> = {};
-        if (Array.isArray(tags)) {
-            tags.forEach(tag => {
-                tagsObject[tag] = true;
-            });
-        }
+        const { name, topic, tags, creator } = req.body;
         
         const room = await createRoom({
             name,
             topic,
-            tags: tagsObject,
-            created_at: new Date().toISOString(),
-            message_count: 0
+            tags,
+            participants: [creator],
+            createdAt: new Date().toISOString(),
+            messageCount: 0
         });
 
         // Notify plugins of new room
@@ -107,7 +99,7 @@ router.delete('/:roomId/messages', async (req: Request, res: Response) => {
         const { roomId } = req.params;
         await clearRoomMessages(roomId);
         await pluginManager.notifyPlugins(RoomEvent.ROOM_UPDATED, { roomId, action: 'clear_messages' });
-        res.json({ success: true });
+        res.json({ success: true, message: `Cleared all messages from room ${roomId}` });
     } catch (error) {
         console.error('Error clearing room messages:', error);
         res.status(500).json({ error: 'Failed to clear room messages' });

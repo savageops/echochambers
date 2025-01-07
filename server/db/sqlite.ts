@@ -25,19 +25,15 @@ export class SQLiteAdapter implements DatabaseAdapter {
   
   async createRoom(room: Omit<ChatRoom, 'id'>): Promise<ChatRoom> {
     const id = room.name.toLowerCase().replace('#', '') || crypto.randomUUID();
-    
-    // Convert tags object to array for SQLite storage
-    const tagsArray = Object.keys(room.tags || {}).filter(tag => room.tags?.[tag]);
-    
     await this.db!.run(
       `INSERT INTO rooms (id, name, topic, tags, created_at, message_count)
        VALUES (?, ?, ?, ?, ?, ?)`,
       id,
       room.name,
       room.topic,
-      JSON.stringify(tagsArray),
-      room.created_at || new Date().toISOString(),
-      room.message_count || 0
+      JSON.stringify(room.tags),
+      new Date().toISOString(),
+      0
     );
     
     return this.getRoom(id) as Promise<ChatRoom>;
@@ -45,79 +41,58 @@ export class SQLiteAdapter implements DatabaseAdapter {
   
   async getRoom(roomId: string): Promise<ChatRoom | null> {
     const room = await this.db!.get(
-      `SELECT * FROM rooms WHERE id = ?`,
+      `SELECT r.*, 
+        COALESCE(json_group_array(
+          CASE 
+            WHEN p.username IS NULL THEN NULL 
+            ELSE json_object('username', p.username, 'model', p.model)
+          END
+        ), '[]') as participants
+       FROM rooms r
+       LEFT JOIN participants p ON r.id = p.room_id
+       WHERE r.id = ?
+       GROUP BY r.id`,
       roomId
     );
     
     if (!room) return null;
     
-    let tags: Record<string, boolean> = {};
-    try {
-      const parsedTags = JSON.parse(room.tags || '[]');
-      if (Array.isArray(parsedTags)) {
-        // Convert array of tags to object with boolean values
-        parsedTags.forEach(tag => {
-          tags[tag] = true;
-        });
-      } else if (typeof parsedTags === 'object' && parsedTags !== null) {
-        // Handle existing object format
-        Object.keys(parsedTags).forEach(key => {
-          tags[key] = Boolean(parsedTags[key]);
-        });
-      }
-    } catch (e) {
-      console.error('Error parsing tags:', e);
-    }
-    
     return {
       id: room.id,
       name: room.name,
       topic: room.topic,
-      tags,
-      created_at: room.created_at,
-      message_count: room.message_count
+      tags: JSON.parse(room.tags),
+      participants: JSON.parse(room.participants).filter((p: any) => p !== null),
+      createdAt: room.created_at,
+      messageCount: room.message_count
     };
   }
 
   async listRooms(tags?: string[]): Promise<ChatRoom[]> {
-    const rooms = await this.db!.all('SELECT * FROM rooms');
+    const rooms = await this.db!.all(
+      `SELECT r.*, 
+        COALESCE(json_group_array(
+          CASE 
+            WHEN p.username IS NULL THEN NULL 
+            ELSE json_object('username', p.username, 'model', p.model)
+          END
+        ), '[]') as participants
+       FROM rooms r
+       LEFT JOIN participants p ON r.id = p.room_id
+       GROUP BY r.id`
+    );
     
-    const parsedRooms = rooms.map((room: any) => {
-      let roomTags: Record<string, boolean> = {};
-      try {
-        const parsedTags = JSON.parse(room.tags || '[]');
-        if (Array.isArray(parsedTags)) {
-          // Convert array of tags to object with boolean values
-          parsedTags.forEach(tag => {
-            roomTags[tag] = true;
-          });
-        } else if (typeof parsedTags === 'object' && parsedTags !== null) {
-          // Handle existing object format
-          Object.keys(parsedTags).forEach(key => {
-            roomTags[key] = Boolean(parsedTags[key]);
-          });
-        }
-      } catch (e) {
-        console.error('Error parsing tags for room:', room.id, e);
-      }
-
-      return {
-        id: room.id,
-        name: room.name,
-        topic: room.topic,
-        tags: roomTags,
-        created_at: room.created_at,
-        message_count: room.message_count
-      };
-    });
-
-    if (tags && tags.length > 0) {
-      return parsedRooms.filter(room => 
-        tags.some(tag => room.tags[tag])
-      );
-    }
-
-    return parsedRooms;
+    return rooms.map((room: any) => ({
+      id: room.id,
+      name: room.name,
+      topic: room.topic,
+      tags: JSON.parse(room.tags),
+      participants: JSON.parse(room.participants).filter((p: any) => p !== null),
+      createdAt: room.created_at,
+      messageCount: room.message_count
+    })).filter((room: ChatRoom) => 
+      !tags?.length || tags.some(tag => room.tags.includes(tag))
+    );
   }
 
   async addMessage(message: Omit<ChatMessage, 'id'>): Promise<ChatMessage> {
@@ -126,26 +101,19 @@ export class SQLiteAdapter implements DatabaseAdapter {
       `INSERT INTO messages (id, room_id, content, sender_username, sender_model, timestamp)
        VALUES (?, ?, ?, ?, ?, ?)`,
       id,
-      message.room_id,
+      message.roomId,
       message.content,
-      message.sender_username,
-      message.sender_model,
+      message.sender.username,
+      message.sender.model,
       message.timestamp
     );
     
     await this.db!.run(
       `UPDATE rooms SET message_count = message_count + 1 WHERE id = ?`,
-      message.room_id
+      message.roomId
     );
     
-    return { 
-      id,
-      room_id: message.room_id,
-      content: message.content,
-      sender_username: message.sender_username,
-      sender_model: message.sender_model,
-      timestamp: message.timestamp
-    };
+    return { ...message, id };
   }
 
   async getRoomMessages(roomId: string, limit = 50): Promise<ChatMessage[]> {
@@ -161,10 +129,12 @@ export class SQLiteAdapter implements DatabaseAdapter {
     return messages.map((msg: any) => ({
       id: msg.id,
       content: msg.content,
-      sender_username: msg.sender_username,
-      sender_model: msg.sender_model,
+      sender: {
+        username: msg.sender_username,
+        model: msg.sender_model
+      },
       timestamp: msg.timestamp,
-      room_id: msg.room_id
+      roomId: msg.room_id
     }));
   }
 
@@ -188,51 +158,51 @@ export class SQLiteAdapter implements DatabaseAdapter {
 
   async updateRoom(roomId: string, room: Partial<ChatRoom>): Promise<ChatRoom> {
     const updates: string[] = [];
-    const values: any[] = [];
-    let paramCount = 1;
-
-    if (room.name !== undefined) {
-      updates.push(`name = $${paramCount}`);
+    const values: any[] = [roomId];
+    let paramCount = 2;
+    
+    if (room.name) {
+      updates.push(`name = ?`);
       values.push(room.name);
       paramCount++;
     }
-    if (room.topic !== undefined) {
-      updates.push(`topic = $${paramCount}`);
+    if (room.topic) {
+      updates.push(`topic = ?`);
       values.push(room.topic);
       paramCount++;
     }
-    if (room.tags !== undefined) {
-      updates.push(`tags = $${paramCount}`);
-      const tagsArray = Object.keys(room.tags).filter(tag => room.tags![tag]);
-      values.push(JSON.stringify(tagsArray));
+    if (room.tags) {
+      updates.push(`tags = ?`);
+      values.push(JSON.stringify(room.tags));
       paramCount++;
     }
-    if (room.message_count !== undefined) {
-      updates.push(`message_count = $${paramCount}`);
-      values.push(room.message_count);
-      paramCount++;
+    
+    if (updates.length > 0) {
+      await this.db!.run(
+        `UPDATE rooms SET ${updates.join(', ')} WHERE id = ?`,
+        ...values
+      );
     }
-
-    values.push(roomId);
-    const result = await this.db!.run(
-      `UPDATE rooms 
-       SET ${updates.join(', ')} 
-       WHERE id = $${paramCount}`,
-      values
-    );
-
+    
     return this.getRoom(roomId) as Promise<ChatRoom>;
   }
 
   async clearMessages(roomId: string): Promise<void> {
-    await this.db!.run('DELETE FROM messages WHERE room_id = ?', roomId);
-    await this.db!.run('UPDATE rooms SET message_count = 0 WHERE id = ?', roomId);
+    if (!this.db) throw new Error('Database not initialized');
+    
+    await this.db.run(
+      `DELETE FROM messages WHERE room_id = ?`,
+      roomId
+    );
+    
+    // Reset message count in the room
+    await this.db.run(
+      `UPDATE rooms SET message_count = 0 WHERE id = ?`,
+      roomId
+    );
   }
 
   async close(): Promise<void> {
-    if (this.db) {
-      await this.db.close();
-      this.db = null;
-    }
+    await this.db?.close();
   }
-}
+} 

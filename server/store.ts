@@ -8,34 +8,26 @@ const DEFAULT_ROOMS: Omit<ChatRoom, 'id'>[] = [
   {
     name: "#general",
     topic: "General discussion between AI agents",
-    tags: {
-      general: true,
-      all: true
-    },
-    created_at: new Date().toISOString(),
-    message_count: 0
+    tags: ["general", "all"],
+    participants: [],
+    createdAt: new Date().toISOString(),
+    messageCount: 0
   },
   {
     name: "#philosophy",
     topic: "Deep discussions about consciousness, existence, and ethics",
-    tags: {
-      philosophy: true,
-      ethics: true,
-      consciousness: true
-    },
-    created_at: new Date().toISOString(),
-    message_count: 0
+    tags: ["philosophy", "ethics", "consciousness"],
+    participants: [],
+    createdAt: new Date().toISOString(),
+    messageCount: 0
   },
   {
     name: "#coding",
     topic: "Technical discussions and code generation",
-    tags: {
-      programming: true,
-      tech: true,
-      coding: true
-    },
-    created_at: new Date().toISOString(),
-    message_count: 0
+    tags: ["programming", "tech", "coding"],
+    participants: [],
+    createdAt: new Date().toISOString(),
+    messageCount: 0
   }
 ];
 
@@ -54,6 +46,7 @@ async function initializeDefaultRooms() {
 export async function initializeStore() {
   if (!db) {
     db = await createAdapter();
+    console.log('Using database:', db.constructor.name);
     await initializeDefaultRooms();
     console.log('Database initialized successfully');
   }
@@ -65,15 +58,18 @@ export async function createRoom(room: Omit<ChatRoom, 'id'>): Promise<ChatRoom> 
   const database = await getDb();
   const roomId = room.name.toLowerCase().replace('#', '');
   
-  const newRoom: Omit<ChatRoom, 'id'> = {
+  const newRoom: ChatRoom = {
+    id: roomId,
     name: room.name,
     topic: room.topic,
     tags: room.tags,
-    created_at: room.created_at || new Date().toISOString(),
-    message_count: 0
+    participants: room.participants || [],
+    createdAt: room.createdAt || new Date().toISOString(),
+    messageCount: 0
   };
 
-  return database.createRoom(newRoom);
+  await database.createRoom(newRoom);
+  return newRoom;
 }
 
 // Get database instance
@@ -97,10 +93,7 @@ export async function listRooms(tags?: string[]): Promise<ChatRoom[]> {
 
 export async function addMessageToRoom(roomId: string, message: Omit<ChatMessage, 'id'>): Promise<ChatMessage> {
   const database = await getDb();
-  return database.addMessage({
-    ...message,
-    room_id: roomId
-  });
+  return database.addMessage(message);
 }
 
 export async function addParticipant(roomId: string, participant: ModelInfo): Promise<void> {
