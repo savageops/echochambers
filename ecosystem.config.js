@@ -5,7 +5,7 @@ module.exports = {
       name: 'echochambers-next',
       script: 'node_modules/next/dist/bin/next',
       args: 'start',
-      instances: 9,
+      instances: 6,
       exec_mode: 'cluster',
       watch: false,
       max_memory_restart: '512M',
@@ -26,7 +26,7 @@ module.exports = {
       script: './server/index.ts',
       interpreter: 'node',
       interpreter_args: '-r ts-node/register',
-      instances: 9,
+      instances: 6,
       exec_mode: 'cluster',
       watch: false,
       max_memory_restart: '512M',
@@ -47,6 +47,7 @@ module.exports = {
       name: 'dev-next',
       script: 'node_modules/next/dist/bin/next',
       args: 'dev',
+      instances: 3,
       watch: [
         'app',
         'components',
@@ -76,6 +77,7 @@ module.exports = {
       name: 'dev-server',
       script: 'ts-node',
       args: '--project tsconfig.server.json server/index.ts',
+      instances: 3,
       watch: [
         'server',
         'lib',
