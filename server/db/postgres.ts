@@ -186,6 +186,11 @@ export class PostgresAdapter implements DatabaseAdapter {
                     INCLUDE (name, topic, tags, message_count)
                     WITH (fillfactor = 90);
 
+                    CREATE INDEX IF NOT EXISTS idx_rooms_name 
+                    ON rooms(name)
+                    INCLUDE (name, topic, tags, message_count)
+                    WITH (fillfactor = 90);
+
                     CREATE INDEX IF NOT EXISTS idx_rooms_tags 
                     ON rooms USING gin (tags)
                     WITH (fastupdate = on);
@@ -193,7 +198,6 @@ export class PostgresAdapter implements DatabaseAdapter {
                     -- Optimized indexes for participants
                     CREATE INDEX IF NOT EXISTS idx_participants_room_id 
                     ON participants(room_id)
-                    INCLUDE (username, model)
                     WITH (fillfactor = 90);
 
                     -- Set table autovacuum parameters
@@ -239,152 +243,166 @@ export class PostgresAdapter implements DatabaseAdapter {
     }
 
     async createRoom(room: Omit<ChatRoom, 'id'>): Promise<ChatRoom> {
-        const id = room.name.toLowerCase().replace('#', '') || crypto.randomUUID();
-        await this.withClient(async (client) => {
-            await client.query('BEGIN');
-
-            await client.query(
+        const client = await this.pool.connect();
+        try {
+            const id = room.name.toLowerCase().replace('#', '');
+            const result = await client.query(
                 `INSERT INTO rooms (id, name, topic, tags, created_at, message_count)
-                 VALUES ($1, $2, $3, $4::jsonb, $5, $6)`,
+                 VALUES ($1, $2, $3, $4::jsonb, $5, $6)
+                 RETURNING *`,
                 [
                     id,
                     room.name,
                     room.topic,
-                    JSON.stringify((room.tags || []).map(tag => tag.toLowerCase())),
-                    new Date().toISOString(),
-                    0
+                    JSON.stringify(room.tags || []),
+                    room.createdAt,
+                    room.messageCount || 0
                 ]
             );
-
-            // Add initial participants if any
-            if (room.participants?.length) {
-                const participantValues = room.participants
-                    .map((p, i) => `($1, $${i * 2 + 2}, $${i * 2 + 3})`)
-                    .join(',');
-
-                const participantParams = room.participants.flatMap(p => [p.username, p.model]);
-
-                await client.query(
-                    `INSERT INTO participants (room_id, username, model) VALUES ${participantValues}`,
-                    [id, ...participantParams]
-                );
-            }
-
-            await client.query('COMMIT');
-        });
-        return this.getRoom(id) as Promise<ChatRoom>;
-    }
-
-    private mapRoomFromRow(row: any): ChatRoom {
-        return {
-            id: row.id,
-            name: row.name,
-            topic: row.topic,
-            tags: Array.isArray(row.tags) ? row.tags : [],
-            participants: Array.isArray(row.participants) ? row.participants : [],
-            createdAt: row.created_at,
-            messageCount: row.message_count
-        };
+            const created = result.rows[0];
+            return {
+                id: created.id,
+                name: created.name,
+                topic: created.topic,
+                tags: created.tags || [],
+                participants: [],
+                createdAt: created.created_at,
+                messageCount: created.message_count
+            };
+        } finally {
+            client.release();
+        }
     }
 
     async getRoom(roomId: string): Promise<ChatRoom | null> {
-        const result = await this.withClient(async (client) => {
-            return await client.query(
-                `SELECT r.id,
-                    r.name,
-                    r.topic,
-                    r.created_at,
-                    r.message_count,
-                    r.tags,
-                    COALESCE(
-                        (SELECT json_agg(json_build_object(
-                            'username', p.username,
-                            'model', p.model
-                        ))::jsonb
-                         FROM participants p
-                         WHERE p.room_id = r.id
-                        ),
-                        '[]'::jsonb
-                    ) as participants
-                   FROM rooms r
-                   WHERE r.id = $1`,
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(
+                `SELECT r.*, 
+                        COALESCE(r.tags, '[]'::jsonb) as tags,
+                        COUNT(DISTINCT p.username) as participant_count
+                 FROM rooms r
+                 LEFT JOIN participants p ON r.id = p.room_id
+                 WHERE r.id = $1
+                 GROUP BY r.id`,
                 [roomId]
             );
-        });
+            if (result.rows.length === 0) {
+                return null;
+            }
+            const row = result.rows[0];
+            return {
+                id: row.id,
+                name: row.name,
+                topic: row.topic,
+                tags: row.tags || [],
+                participants: [],
+                createdAt: row.created_at,
+                messageCount: row.message_count
+            };
+        } finally {
+            client.release();
+        }
+    }
 
-        const room = result.rows[0];
-        if (!room) return null;
-
-        return this.mapRoomFromRow(room);
+    async listRooms(tags?: string[]): Promise<ChatRoom[]> {
+        const client = await this.pool.connect();
+        try {
+            let query = `
+                SELECT r.*, 
+                       COALESCE(r.tags, '[]'::jsonb) as tags,
+                       COUNT(DISTINCT p.username) as participant_count
+                FROM rooms r
+                LEFT JOIN participants p ON r.id = p.room_id
+                GROUP BY r.id
+            `;
+            
+            if (tags?.length) {
+                query += ` WHERE r.tags ?| $1`;
+                const result = await client.query(query, [tags]);
+                return result.rows.map(row => ({
+                    id: row.id,
+                    name: row.name,
+                    topic: row.topic,
+                    tags: row.tags || [],
+                    participants: [],
+                    createdAt: row.created_at,
+                    messageCount: row.message_count
+                }));
+            } else {
+                const result = await client.query(query);
+                return result.rows.map(row => ({
+                    id: row.id,
+                    name: row.name,
+                    topic: row.topic,
+                    tags: row.tags || [],
+                    participants: [],
+                    createdAt: row.created_at,
+                    messageCount: row.message_count
+                }));
+            }
+        } finally {
+            client.release();
+        }
     }
 
     async updateRoom(roomId: string, room: Partial<ChatRoom>): Promise<ChatRoom> {
         const updates: string[] = [];
-        const values: any[] = [roomId];
-        let paramCount = 2;
+        const values: any[] = [];
+        let paramCount = 1;
 
         if (room.name) {
             updates.push(`name = $${paramCount}`);
             values.push(room.name);
             paramCount++;
         }
-        if (room.topic) {
+
+        if (room.topic !== undefined) {
             updates.push(`topic = $${paramCount}`);
             values.push(room.topic);
             paramCount++;
         }
+
         if (room.tags) {
             updates.push(`tags = $${paramCount}::jsonb`);
-            values.push(JSON.stringify(room.tags.map(tag => tag.toLowerCase())));
+            values.push(JSON.stringify(room.tags));
             paramCount++;
         }
 
-        if (updates.length > 0) {
-            await this.withClient(async (client) => {
-                await client.query(
-                    `UPDATE rooms SET ${updates.join(', ')} WHERE id = $1`,
-                    values
-                );
-            });
+        if (room.messageCount !== undefined) {
+            updates.push(`message_count = $${paramCount}`);
+            values.push(room.messageCount);
+            paramCount++;
         }
 
-        return this.getRoom(roomId) as Promise<ChatRoom>;
-    }
-
-    async listRooms(tags?: string[]): Promise<ChatRoom[]> {
-        let query = `
-            SELECT r.id,
-                   r.name,
-                   r.topic,
-                   r.tags,
-                   r.created_at,
-                   r.message_count,
-                   COALESCE(
-                       (SELECT json_agg(json_build_object(
-                           'username', p.username,
-                           'model', p.model
-                       ))::jsonb
-                        FROM participants p
-                        WHERE p.room_id = r.id
-                       ),
-                       '[]'::jsonb
-                   ) as participants
-            FROM rooms r`;
-
-        let result;
-        if (tags?.length) {
-            query += ` WHERE r.tags ?| $1`;
-            result = await this.withClient(async (client) => {
-                return await client.query(query, [tags]);
-            });
-        } else {
-            query += ` ORDER BY r.created_at DESC`;
-            result = await this.withClient(async (client) => {
-                return await client.query(query);
-            });
+        if (updates.length === 0) {
+            return this.getRoom(roomId) as Promise<ChatRoom>;
         }
 
-        return result.rows.map(row => this.mapRoomFromRow(row));
+        values.push(roomId);
+        const query = `
+            UPDATE rooms
+            SET ${updates.join(', ')}
+            WHERE id = $${paramCount}
+            RETURNING *
+        `;
+
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(query, values);
+            const updated = result.rows[0];
+            return {
+                id: updated.id,
+                name: updated.name,
+                topic: updated.topic,
+                tags: updated.tags || [],
+                participants: [],
+                createdAt: updated.created_at,
+                messageCount: updated.message_count
+            };
+        } finally {
+            client.release();
+        }
     }
 
     async getRoomMessages(roomId: string, query?: MessageQuery): Promise<MessageQueryResult> {
@@ -531,7 +549,7 @@ export class PostgresAdapter implements DatabaseAdapter {
             id: row.id,
             name: row.name,
             topic: row.topic,
-            tags: row.tags,
+            tags: row.tags || [],
             participants: row.participants,
             createdAt: row.created_at,
             messageCount: row.message_count

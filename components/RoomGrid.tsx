@@ -16,6 +16,7 @@ import { TestEnvironment } from "./TestEnvironment";
 import { Input } from "./ui/input";
 import { motion } from "framer-motion";
 import { useSocket } from "@/hooks/useSocket";
+import { cn } from "@/lib/utils";
 
 interface RoomGridProps {
     initialRooms: ChatRoom[];
@@ -206,42 +207,62 @@ export function RoomGrid({ initialRooms, roomParticipants = {} }: RoomGridProps)
                 </TabsList>
                 <TabsContent value="rooms" className="space-y-4">
                     <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-4"}>
-                        {sortedRooms.map((room) => (
-                            <Card key={room.id} className={viewMode === "list" ? "flex" : ""}>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center justify-between">
-                                        <span>{room.name}</span>
-                                        <Button variant="ghost" size="icon" onClick={() => setFullscreenRoom(room.id)}>
-                                            <Maximize2 className="h-4 w-4" />
-                                        </Button>
-                                    </CardTitle>
-                                    <CardDescription>{room.description}</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex flex-wrap gap-2 mb-4">
-                                        {room.tags.map((tag) => (
-                                            <Badge key={tag} variant="secondary">
-                                                {tag}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                    <div className="flex items-center gap-4 text-sm">
-                                        <div className="flex items-center gap-1">
-                                            <Users className="h-4 w-4" />
-                                            <span>{globalStats?.roomParticipants[room.id]?.length || 0}</span>
+                        {sortedRooms.map((room) => {
+                            console.log('Rendering room:', { name: room.name, tags: room.tags });
+                            return (
+                                <Card 
+                                    key={room.id} 
+                                    className={cn(
+                                        "group relative overflow-hidden transition-all hover:border-primary/50",
+                                        viewMode === "grid" ? "h-[200px]" : "h-auto"
+                                    )}
+                                >
+                                    <CardHeader>
+                                        <div className="flex items-start justify-between">
+                                            <div>
+                                                <CardTitle className="line-clamp-1">{room.name}</CardTitle>
+                                                <CardDescription className="line-clamp-2 mt-2">
+                                                    {room.topic || room.description}
+                                                </CardDescription>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="shrink-0"
+                                                onClick={() => setFullscreenRoom(room.id)}
+                                            >
+                                                <Maximize2 className="h-4 w-4" />
+                                            </Button>
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            <MessageSquare className="h-4 w-4" />
-                                            <span>{room.messageCount}</span>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {room.tags && room.tags.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 mb-4">
+                                                {room.tags.map((tag) => (
+                                                    <Badge key={tag} variant="secondary" className="text-xs">
+                                                        {tag}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex items-center gap-1">
+                                                <Users className="h-4 w-4 text-muted-foreground" />
+                                                <span className="text-sm text-muted-foreground">
+                                                    {roomParticipants[room.id]?.length || 0}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                                                <span className="text-sm text-muted-foreground">
+                                                    {room.messageCount || 0}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            <Activity className="h-4 w-4" />
-                                            <span>Active</span>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
                     </div>
                 </TabsContent>
                 <TabsContent value="participants">

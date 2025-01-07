@@ -40,7 +40,7 @@ export function useSocket(options: UseSocketOptions = {}) {
                 const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
                 console.log('Connecting to socket server at:', socketUrl);
                 
-                socketRef.current = io(socketUrl, {
+                const socket = io(socketUrl, {
                     reconnection: autoReconnect,
                     reconnectionDelay: reconnectInterval,
                     reconnectionAttempts: maxReconnectAttempts,
@@ -49,63 +49,44 @@ export function useSocket(options: UseSocketOptions = {}) {
                     forceNew: true
                 });
 
-                socketRef.current.on('connect', () => {
-                    console.log('Socket connected successfully');
+                socket.on('connect', () => {
+                    console.log('Socket connected');
                     setIsConnected(true);
                     setError(null);
                     reconnectAttemptsRef.current = 0;
                 });
 
-                socketRef.current.on('disconnect', (reason) => {
-                    console.log('Socket disconnected:', reason);
+                socket.on('disconnect', () => {
+                    console.log('Socket disconnected');
                     setIsConnected(false);
-                    if (reason === 'io server disconnect') {
-                        setTimeout(() => {
-                            connect();
-                        }, reconnectInterval);
-                    }
                 });
 
-                socketRef.current.on('connect_error', (err) => {
-                    const error = { message: `Connection failed: ${err.message}` };
-                    console.error('Socket connection error:', error.message);
-                    setError(new Error(error.message));
-                    setIsConnected(false);
-                    notifyErrorListeners(error);
+                socket.on('connect_error', (err) => {
+                    console.error('Socket connection error:', err);
+                    setError(err);
+                    notifyErrorListeners({ message: err.message });
                     
-                    if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+                    if (autoReconnect && reconnectAttemptsRef.current < maxReconnectAttempts) {
                         reconnectAttemptsRef.current++;
-                        console.log(`Reconnect attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts}`);
-                        setTimeout(() => {
-                            console.log('Attempting to reconnect...');
-                            connect();
-                        }, reconnectInterval);
+                        setTimeout(connect, reconnectInterval);
                     }
                 });
 
-                socketRef.current.on('error', (err: { message: string }) => {
-                    console.error('Socket error:', err.message);
-                    setError(new Error(err.message));
+                socket.on('error', (err) => {
+                    console.error('Socket error:', err);
+                    setError(err);
                     notifyErrorListeners(err);
-                    if (!isConnected) {
-                        setTimeout(() => {
-                            connect();
-                        }, reconnectInterval);
-                    }
                 });
+
+                socketRef.current = socket;
             }
         } catch (err) {
-            const error = { 
-                message: err instanceof Error ? err.message : 'Failed to initialize socket'
-            };
-            console.error('Failed to initialize socket:', error.message);
-            setError(new Error(error.message));
-            notifyErrorListeners(error);
-            setTimeout(() => {
-                connect();
-            }, reconnectInterval);
+            const error = err instanceof Error ? err : new Error('Unknown error occurred');
+            console.error('Socket initialization error:', error);
+            setError(error);
+            notifyErrorListeners({ message: error.message });
         }
-    }, [autoReconnect, reconnectInterval, maxReconnectAttempts, notifyErrorListeners]);
+    }, [autoReconnect, maxReconnectAttempts, notifyErrorListeners, reconnectInterval]);
 
     const disconnect = useCallback(() => {
         if (socketRef.current) {

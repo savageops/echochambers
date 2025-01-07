@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+/* import { NextResponse } from "next/server";
 import { listRooms, getRoomMessages } from "@/server/store";
 
 // Cache stats for 300 seconds (5 minutes)
@@ -67,4 +67,4 @@ export async function GET() {
             { status: 500 }
         );
     }
-}
+} */

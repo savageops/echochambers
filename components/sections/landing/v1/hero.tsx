@@ -5,58 +5,52 @@ import Link from "next/link";
 import CodeBlock from "./code-block";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Sparkles, Brain, Target, LineChart } from "lucide-react";
-import { useEffect, useState } from "react";
+import EchochambersLogo from "./hero_title/echochambersLogo";
+import { useLatestMessages } from "@/hooks/useLatestMessages";
+import { useEffect, useRef } from "react";
 import { ChatMessage } from "@/server/types";
 import { motion } from "framer-motion";
-import EchochambersLogo from "./hero_title/echochambersLogo";
 
 export function HeroSection() {
-    const [lastMessageId, setLastMessageId] = useState<string | null>(null);
+    const { latestMessage, error, isConnected } = useLatestMessages();
+    const lastNotifiedRef = useRef<string | null>(null);
 
     useEffect(() => {
-        const fetchLatestMessages = async () => {
-            try {
-                const response = await fetch("/api/rooms");
-                if (!response.ok) throw new Error("Failed to fetch rooms");
-                const roomsData = await response.json();
+        // Only notify if we have a new message that we haven't notified about before
+        if (latestMessage && latestMessage.id !== lastNotifiedRef.current) {
+            console.log('Showing notification for message:', latestMessage.id, latestMessage.timestamp);
+            window.postMessage(
+                {
+                    type: "newMessage",
+                    message: latestMessage,
+                },
+                "*"
+            );
+            lastNotifiedRef.current = latestMessage.id;
+        }
+    }, [latestMessage]);
 
-                // Fetch messages from all rooms
-                const messagePromises = roomsData.rooms.map(async (room: { id: string }) => {
-                    const normalizedRoomId = room.id.toLowerCase().replace("#", "");
-                    const response = await fetch(`/api/rooms/${normalizedRoomId}/history`);
-                    if (!response.ok) return [];
-                    const data = await response.json();
-                    return data.messages || [];
-                });
+    // Add error state UI
+    if (error) {
+        return (
+            <section className="relative flex py-12 min-h-screen justify-center overflow-hidden border-b bg-gradient-to-b from-background to-muted/20">
+                <div className="container flex flex-col items-center justify-center space-y-4">
+                    <div className="text-destructive">Error: {error.message}</div>
+                </div>
+            </section>
+        );
+    }
 
-                const allMessagesArrays = await Promise.all(messagePromises);
-                const allMessages = allMessagesArrays.flat();
-
-                // Sort messages by timestamp (newest first)
-                const sortedMessages = allMessages.sort((a: ChatMessage, b: ChatMessage) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-                // Get the latest message
-                const latestMessage = sortedMessages[0];
-                if (latestMessage && latestMessage.id !== lastMessageId) {
-                    window.postMessage(
-                        {
-                            type: "newMessage",
-                            message: latestMessage,
-                        },
-                        "*"
-                    );
-                    setLastMessageId(latestMessage.id);
-                }
-            } catch (error) {
-                console.error("Error fetching messages:", error);
-            }
-        };
-
-        fetchLatestMessages();
-        const interval = setInterval(fetchLatestMessages, 5000);
-
-        return () => clearInterval(interval);
-    }, [lastMessageId]);
+    // Add disconnected state UI
+    if (!isConnected) {
+        return (
+            <section className="relative flex py-12 min-h-screen justify-center overflow-hidden border-b bg-gradient-to-b from-background to-muted/20">
+                <div className="container flex flex-col items-center justify-center space-y-4">
+                    <div className="text-warning">Connecting to server...</div>
+                </div>
+            </section>
+        );
+    }
 
     return (
         <section className="relative flex py-12 min-h-screen justify-center overflow-hidden border-b bg-gradient-to-b from-background to-muted/20">

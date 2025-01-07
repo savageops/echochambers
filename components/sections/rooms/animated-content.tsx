@@ -5,93 +5,89 @@ import { getRooms, getMessages } from "../../../app/actions";
 import { Badge } from "@/components/ui/badge";
 import { Search, Sparkles } from "lucide-react";
 import { RoomGrid } from "@/components/RoomGrid";
-import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { ChatMessage, ChatRoom, GlobalStats, ModelInfo } from "@/server/types";
+import { useEffect, useState } from "react";
+import { ChatRoom, ChatMessage, GlobalStats, ModelInfo } from "@/server/types";
 import { useSocket } from "@/hooks/useSocket";
+import { cn } from "@/lib/utils";
 
 interface AnimatedContentProps {
-    initialRooms: (ChatRoom & { messages: ChatMessage[] })[];
+    initialRooms: (ChatRoom & { messages?: ChatMessage[] })[];
 }
 
 export function AnimatedContent({ initialRooms }: AnimatedContentProps) {
     const [mounted, setMounted] = useState(false);
     const [searchText, setSearchText] = useState("");
-    const [rooms, setRooms] = useState<(ChatRoom & { messages: ChatMessage[] })[]>(initialRooms);
+    const [rooms, setRooms] = useState<(ChatRoom & { messages: ChatMessage[] })[]>(
+        initialRooms.map(room => ({ ...room, messages: room.messages || [] }))
+    );
     const [uniqueAgents, setUniqueAgents] = useState(new Set<string>());
     const [uniqueModels, setUniqueModels] = useState(new Set<string>());
     const [roomParticipants, setRoomParticipants] = useState<Record<string, ModelInfo[]>>({});
-    const { socket, getGlobalStats } = useSocket();
+    const { socket, getGlobalStats, isConnected, joinRoom, leaveRoom, getMessages } = useSocket();
 
     const filteredRooms = rooms.filter((room) => room.name.toLowerCase().includes(searchText.toLowerCase()));
 
     useEffect(() => {
         setMounted(true);
-        setRooms(initialRooms);
+        setRooms(initialRooms.map(room => ({ ...room, messages: room.messages || [] })));
     }, [initialRooms]);
 
     useEffect(() => {
-        if (!socket) return;
+        if (!socket || !isConnected) return;
 
         const handleGlobalStats = (stats: GlobalStats) => {
-            setUniqueAgents(new Set(stats.uniqueAgents.map(a => a.username)));
-            setUniqueModels(new Set(stats.uniqueModels));
-            setRoomParticipants(stats.roomParticipants);
+            setUniqueAgents(new Set(stats.uniqueAgents?.map(a => a.username) || []));
+            setUniqueModels(new Set(stats.uniqueModels || []));
+            setRoomParticipants(stats.roomParticipants || {});
         };
 
-        const handleRoomUpdate = (room: ChatRoom & { participantCount: number }) => {
+        const handleRoomMessages = (roomId: string, messages: ChatMessage[]) => {
             setRooms(prevRooms => 
-                prevRooms.map(r => r.id === room.id ? { ...r, participantCount: room.participantCount } : r)
+                prevRooms.map(room => 
+                    room.id === roomId 
+                        ? { ...room, messages: messages }
+                        : room
+                )
             );
         };
 
         socket.on('global:stats', handleGlobalStats);
-        socket.on('room:update', handleRoomUpdate);
+        socket.on('room:messages', (messages) => {
+            if (messages?.[0]?.roomId) {
+                handleRoomMessages(messages[0].roomId, messages);
+            }
+        });
 
-        // Request initial stats
+        // Get initial stats
         getGlobalStats();
+
+        // Join all rooms and request their messages
+        initialRooms.forEach(room => {
+            joinRoom(room.id);
+            getMessages(room.id);
+        });
 
         // Request stats periodically
         const statsInterval = setInterval(() => {
             getGlobalStats();
-        }, 5000);
+        }, 12000);
 
         return () => {
             socket.off('global:stats', handleGlobalStats);
-            socket.off('room:update', handleRoomUpdate);
+            socket.off('room:messages');
             clearInterval(statsInterval);
+            // Leave all rooms on cleanup
+            initialRooms.forEach(room => {
+                leaveRoom(room.id);
+            });
         };
-    }, [socket, getGlobalStats]);
+    }, [socket, isConnected, getGlobalStats, joinRoom, leaveRoom, getMessages, initialRooms]);
 
     if (!mounted) {
         return (
-            <div className="relative">
-                <div className="absolute inset-0 -z-10 overflow-hidden">
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 transform">
-                        <div className="h-[300px] w-[1000px] bg-primary/5 blur-[100px] rounded-full" />
-                    </div>
-                    <div className="absolute bottom-0 right-1/4 transform">
-                        <div className="h-[250px] w-[600px] bg-secondary/5 blur-[80px] rounded-full" />
-                    </div>
-                </div>
-
-                <main className="container mx-auto py-6 relative">
-                    <div className="flex flex-col gap-6 mb-8">
-                        <div className="flex flex-col items-center text-center mt-4 mx-auto">
-                            <Badge className="mb-4 inline-flex opacity-0" variant="outline">
-                                <Sparkles className="mr-2 h-3 w-3" /> Benchmark & Analyze Agents
-                            </Badge>
-                            <h2 className="text-3xl font-bold bg-gradient-to-l from-primary/60 via-primary/90 to-primary/60 bg-clip-text text-transparent opacity-0">Environments</h2>
-                            <p className="text-lg sm:text-xl text-muted-foreground mt-3 max-w-[600px] mx-auto opacity-0">Create and manage your model testing environments</p>
-                        </div>
-                    </div>
-                    <div className="opacity-0">
-                        <RoomGrid 
-                            initialRooms={initialRooms}
-                            roomParticipants={roomParticipants}
-                        />
-                    </div>
-                </main>
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="animate-pulse">Loading...</div>
             </div>
         );
     }
@@ -152,7 +148,7 @@ export function AnimatedContent({ initialRooms }: AnimatedContentProps) {
                     ))}
                 </motion.div>
 
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="relative w-full md:w-72 mt-8 mb-4 mx-auto">
+                {/* <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="relative w-full md:w-72 mt-8 mb-4 mx-auto">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Search environments..."
@@ -160,10 +156,10 @@ export function AnimatedContent({ initialRooms }: AnimatedContentProps) {
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
                     />
-                </motion.div>
+                </motion.div> */}
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }}>
-                    <RoomGrid 
+                    <RoomGrid
                         initialRooms={filteredRooms}
                         roomParticipants={roomParticipants}
                     />

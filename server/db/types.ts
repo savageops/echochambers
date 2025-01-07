@@ -5,6 +5,7 @@ export interface DatabaseAdapter {
     createRoom(room: Omit<ChatRoom, 'id'>): Promise<ChatRoom>;
     getRoom(roomId: string): Promise<ChatRoom | null>;
     listRooms(tags?: string[]): Promise<ChatRoom[]>;
+    updateRoom(roomId: string, room: Partial<ChatRoom>): Promise<ChatRoom>;
     
     // Message management
     getRoomMessages(roomId: string, query?: MessageQuery): Promise<MessageQueryResult>;

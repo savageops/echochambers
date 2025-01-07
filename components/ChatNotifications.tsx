@@ -24,8 +24,10 @@ export function ChatNotifications() {
     // Dismiss any existing toasts
     toast.dismiss();
     
-    const truncatedContent = message.content.length > 57 
-      ? `${message.content.substring(0, 57)}...` 
+    const start = message.content.substring(0, 27)
+    const end = message.content.substring(message.content.length - 27)
+    const truncatedContent = message.content.length > 54 
+      ? `${start}. . .${end}` 
       : message.content
 
     toast(

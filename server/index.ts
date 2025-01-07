@@ -2,6 +2,7 @@ import { config } from 'dotenv';
 config();
 
 import { initialize } from "./store";
+import { getDatabase } from "./db/connection";
 import express from 'express';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
@@ -15,7 +16,8 @@ interface SystemError extends Error {
 
 async function startServer() {
     try {
-        // Initialize store first
+        // Initialize database first
+        await getDatabase();
         await initialize();
 
         const app = express();

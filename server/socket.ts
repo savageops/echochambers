@@ -52,6 +52,7 @@ export interface SocketServerToClientEvents {
     'room:update': (room: ChatRoom & { participantCount: number }) => void;
     'global:stats': (stats: GlobalStats) => void;
     'error': (error: { message: string }) => void;
+    'room:messages:latest': (messages: ChatMessage[]) => void;
 }
 
 export interface SocketClientToServerEvents {
@@ -61,10 +62,11 @@ export interface SocketClientToServerEvents {
     'room:messages:sync': (roomId: string, lastCursor: string) => void;
     'room:stats:get': (roomId: string) => void;
     'global:stats:get': () => void;
+    'room:messages:latest': (roomId: string) => void;
 }
 
 // Socket server instance
-let io: SocketIOServer<SocketClientToServerEvents, SocketServerToClientEvents> | null = null;
+export let io: SocketIOServer<SocketClientToServerEvents, SocketServerToClientEvents> | null = null;
 
 // Cache management
 const roomCache = new Map<string, RoomCacheData>();
@@ -355,6 +357,10 @@ export const waitForInitialization = async (timeoutMs: number = 30000) => {
 
 // Socket event handlers
 async function handleConnection(socket: Socket<SocketClientToServerEvents, SocketServerToClientEvents>) {
+    if (!io) {
+        throw new Error('Socket server not initialized');
+    }
+
     const subscribedRooms = new Set<string>();
 
     socket.on('room:join', async (roomId: string) => {
@@ -458,6 +464,20 @@ async function handleConnection(socket: Socket<SocketClientToServerEvents, Socke
         }
     });
 
+    socket.on('room:messages:latest', async (roomId: string) => {
+        try {
+            // Get only the latest message
+            const result = await store.getRoomMessages(roomId, { limit: 1 });
+            const latestMessages = result.messages;
+            if (latestMessages.length > 0) {
+                socket.emit('room:messages:latest', latestMessages);
+            }
+        } catch (error) {
+            console.error('Error fetching latest message:', error);
+            socket.emit('error', { message: 'Failed to fetch latest message' });
+        }
+    });
+
     socket.on('room:stats:get', async (roomId: string) => {
         try {
             const cached = roomCache.get(roomId);
@@ -472,16 +492,17 @@ async function handleConnection(socket: Socket<SocketClientToServerEvents, Socke
         }
     });
 
-    socket.on('global:stats:get', () => {
+    socket.on('global:stats:get', async () => {
         try {
-            if (globalStats) {
-                socket.emit('global:stats', globalStats);
+            // Get stats from cache
+            const stats = await getGlobalStats();
+            if (!stats) {
+                throw new Error('No stats available');
             }
-        } catch (error: unknown) {
-            console.error('Error getting global stats:', error);
-            socket.emit('error', { 
-                message: error instanceof Error ? error.message : 'Unknown error occurred' 
-            });
+            socket.emit('global:stats', stats);
+        } catch (error) {
+            console.error('Error fetching global stats:', error);
+            socket.emit('error', { message: 'Failed to fetch global stats' });
         }
     });
 
@@ -490,23 +511,31 @@ async function handleConnection(socket: Socket<SocketClientToServerEvents, Socke
     });
 };
 
-export const initSocket = async (socketServer: SocketIOServer<SocketClientToServerEvents, SocketServerToClientEvents>) => {
+export function initSocket(socketServer: SocketIOServer<SocketClientToServerEvents, SocketServerToClientEvents>) {
     io = socketServer;
 
     // Wait for cache to be initialized before accepting connections
-    await waitForInitialization();
-    console.log('Socket server ready to accept connections');
-
-    io.on('connection', handleConnection);
+    waitForInitialization().then(() => {
+        if (!io) {
+            throw new Error('Socket server not initialized');
+        }
+        console.log('Socket server ready to accept connections');
+        io.on('connection', handleConnection);
+    }).catch(error => {
+        console.error('Failed to initialize socket server:', error);
+        process.exit(1);
+    });
 
     // Start background cache update
     if (!updateInterval) {
-        updateInterval = setInterval(updateCache, CACHE_UPDATE_INTERVAL);
-        updateCache().catch(console.error);
+        updateInterval = setInterval(() => {
+            console.log('Checking for updates...');
+            updateCache().catch(error => {
+                console.error('Background cache update failed:', error);
+            });
+        }, CACHE_UPDATE_INTERVAL);
     }
-
-    return io;
-};
+}
 
 export const closeSocket = async () => {
     if (updateInterval) {
@@ -541,3 +570,10 @@ process.on('SIGINT', () => {
         clearInterval(updateInterval);
     }
 });
+
+const getGlobalStats = async (): Promise<GlobalStats> => {
+    if (!globalStats) {
+        throw new Error('Global stats not initialized');
+    }
+    return globalStats;
+};
