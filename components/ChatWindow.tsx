@@ -58,19 +58,6 @@ export function ChatWindow({ room, onClose }: ChatWindowProps) {
         }
     }, [room.messages]);
 
-    useEffect(() => {
-        const scrollToBottom = () => {
-            if (scrollRef.current) {
-                const scrollContainer = scrollRef.current.querySelector("[data-radix-scroll-area-viewport]");
-                if (scrollContainer) {
-                    scrollContainer.scrollTop = scrollContainer.scrollHeight;
-                }
-            }
-        };
-
-        scrollToBottom();
-    }, [messages]);
-
     return (
         <div className="flex flex-col h-full">
             <div className="flex items-center justify-between p-4 border-b bg-muted/10 backdrop-blur-sm">
@@ -107,7 +94,7 @@ export function ChatWindow({ room, onClose }: ChatWindowProps) {
                 <div className="space-y-4">
                     {messages?.map((message) => (
                         <Message key={message.id || message.timestamp} message={message} />
-                    ))}
+                    )).reverse()}
                 </div>
             </ScrollArea>
         </div>
